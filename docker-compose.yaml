@@ -14,18 +14,19 @@ services:
     image: postgres:16.3
     container_name: test_booking_db
     environment:
-      TEST_POSTGRES_DB: ${TEST_POSTGRES_DB}
-      TEST_POSTGRES_USER: ${TEST_POSTGRES_USER}
-      TEST_POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${TEST_POSTGRES_DB}
+      POSTGRES_USER: ${TEST_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
-        test: ["CMD", "pg_isready", "-U", "postgres"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 20s
+      timeout: 5s 
+      retries: 10
+    restart: on-failure
   
   db: 
     image: postgres:16.3
@@ -38,9 +39,10 @@ services:
       - "5433:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
+      interval: 20s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: on-failure
     
   redis:
     image: redis:7
@@ -55,13 +57,24 @@ services:
     ports:
       - "7777:8000"
     environment:
+      MODE: ${MODE}
+      LOG_LEVEL: ${LOG_LEVEL}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
+      TEST_DB_HOST: ${TEST_DB_HOST}
+      TEST_DB_PORT: ${TEST_DB_PORT}
+      TEST_DB_USER: ${TEST_DB_USER}
+      TEST_DB_PASS: ${TEST_DB_PASS}
+      TEST_DB_NAME: ${TEST_DB_NAME}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
     depends_on:
@@ -79,9 +92,6 @@ services:
       context: .
     container_name: booking_celery
     command: ['/booking/docker/celery.sh', 'celery']
-    environment:
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
     depends_on:
       - redis
 
@@ -91,9 +101,6 @@ services:
       context: .
     container_name: booking_celery_beat
     command: sh -c "celery --app=app.tasks.celery:celery worker -l INFO -B"
-    environment:
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
     depends_on:
       - redis
 
@@ -103,9 +110,6 @@ services:
       context: .
     container_name: booking_flower
     command: ['/booking/docker/celery.sh', 'flower']
-    environment:
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
     depends_on:
       - redis
     # ports:
