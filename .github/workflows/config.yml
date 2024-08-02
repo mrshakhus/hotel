@@ -53,6 +53,7 @@ jobs:
         run: |
           docker-compose build
           docker-compose up
+          run: docker-compose logs booking
 
       - name: Check container health and logs
         run: |
