@@ -54,6 +54,16 @@ jobs:
           docker-compose build
           docker-compose up
 
+      - name: Check container health and logs
+        run: |
+            docker ps -a
+            docker-compose logs booking
+        continue-on-error: true
+  
+      - name: Run tests
+        run: docker exec -t booking pytest # Замените 'booking' на нужный контейнер и настройте запуск тестов по необходимости
+        continue-on-error: true
+
         
 
           
