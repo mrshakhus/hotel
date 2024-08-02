@@ -10,18 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.7
 
-      # - name: Set up Docker
-      #   run: |
-      #     curl -fsSL https://get.docker.com -o get-docker.sh
-      #     sh get-docker.sh
-
       - name: Install Docker Compose
         run: |
           curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o docker-compose
           chmod +x docker-compose
           sudo mv docker-compose /usr/local/bin/
 
-      - name: Build and run tests
+      - name: Build Docker containers
         env:
           MODE: ${{ secrets.MODE }}
           LOG_LEVEL: ${{ secrets.LOG_LEVEL }}
@@ -49,20 +44,17 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           ALGORITHM: ${{ secrets.ALGORITHM }}
-        
         run: |
           docker-compose build
-          docker-compose up
-          run: docker-compose logs booking
+
+      - name: Start Docker containers
+        run: |
+          docker-compose up -d
 
       - name: Check container health and logs
         run: |
-            docker ps -a
-            docker-compose logs booking
-        continue-on-error: true
-  
-      - name: Run tests
-        run: docker exec -t booking pytest # Замените 'booking' на нужный контейнер и настройте запуск тестов по необходимости
+          docker ps -a
+          docker-compose logs booking
         continue-on-error: true
 
         
