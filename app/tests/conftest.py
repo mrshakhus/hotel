@@ -3,11 +3,11 @@ from datetime import datetime
 
 from functools import wraps
 from unittest import mock
-from fastapi_cache.backends.inmemory import InMemoryBackend
 
 import json
 from fastapi_cache import FastAPICache
 from httpx import ASGITransport, AsyncClient, patch
+from fastapi_cache.backends.inmemory import InMemoryBackend
 import pytest
 from sqlalchemy import insert
 from app.config import settings
@@ -71,11 +71,10 @@ async def prepare_database():
 @pytest.fixture(scope="session")
 def test_app():
     # Create a test instance of the app
-    FastAPICache.init("null")
+    FastAPICache.init(InMemoryBackend())
     fastapi_app.dependency_overrides = {}
     yield fastapi_app
     FastAPICache.reset()
-
 
 @pytest.fixture(scope="session")
 async def ac(test_app):
