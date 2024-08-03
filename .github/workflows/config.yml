@@ -56,7 +56,7 @@ jobs:
           docker ps
           docker logs booking_app
           docker logs booking_db
-          docker logs test_booking_app
+          docker logs test_booking_db
           docker logs booking_redis
           docker logs booking_celery
           docker logs booking_celery_beat
