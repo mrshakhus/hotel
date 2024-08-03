@@ -49,11 +49,11 @@ jobs:
         run: docker-compose --env-file .env build
 
       - name: Start Docker containers
-        run: docker-compose up 
+        run: docker-compose up
 
       - name: Check container health and logs
         run: |
-          docker ps -a
+          docker ps
           docker logs booking_app
           docker logs booking_db
           docker logs test_booking_app
