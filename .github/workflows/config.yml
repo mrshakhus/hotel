@@ -54,7 +54,13 @@ jobs:
       - name: Check container health and logs
         run: |
           docker ps -a
-          docker-compose logs booking
+          docker logs booking_app
+          docker logs booking_db
+          docker logs test_booking_app
+          docker logs booking_redis
+          docker logs booking_celery
+          docker logs booking_celery_beat
+          docker logs booking_flower
         continue-on-error: true
 
       - name: Stop Docker containers
