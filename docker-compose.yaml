@@ -77,13 +77,13 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
-    # depends_on:
-    #   db:
-    #     condition: service_healthy
-    #   test_db:
-    #     condition: service_healthy
-    #   redis:
-    #     condition: service_started
+    depends_on:
+      db:
+        condition: service_healthy
+      test_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 
   celery:

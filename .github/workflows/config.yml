@@ -49,13 +49,16 @@ jobs:
         run: docker-compose --env-file .env build
 
       - name: Start Docker containers
-        run: docker-compose up 
+        run: docker-compose up -d
 
       - name: Check container health and logs
         run: |
           docker ps -a
           docker-compose logs booking
         continue-on-error: true
+
+      - name: Stop Docker containers
+        run: docker-compose down
 
         
 
