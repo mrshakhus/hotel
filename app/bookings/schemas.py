@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 
 class SBooking(BaseModel):
@@ -10,5 +10,14 @@ class SBooking(BaseModel):
     price: int
     total_cost: int
     total_days: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SBookingConfirmation(BaseModel):
+    id: int
+    user_id: int
+    token: str
+    expires_at: datetime
+    is_confirmed: bool
 
     model_config = ConfigDict(from_attributes=True)

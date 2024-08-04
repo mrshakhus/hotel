@@ -49,3 +49,18 @@ async def create_booking_notification_template(
     )
 
     return email
+
+async def create_booking_confirmation_link_template(email: EmailStr, token: str):
+    email = EmailMessage()
+    email["From"] = settings.SMTP_USER
+    email["To"] = email
+
+    email.set_content(
+        f"""
+            <h1>Подтвердите бронирование</h1>
+            Пожалуйста, перейдите по ссылке для подтверждения бронирования: http://127.0.0.1:8000/v1/bookings/confirmation/{token}
+        """,
+        subtype="html"
+    )
+
+    return email

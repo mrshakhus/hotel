@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Computed, Date, ForeignKey, Integer, String
+from datetime import datetime, timezone
+from sqlalchemy import Column, Computed, Date, DateTime, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -20,7 +21,17 @@ class Bookings(Base):
     def __str__(self) -> str:
         return f"Бронь #{self.id}"
     
-    # image_id = Column(Integer)
-    # name = Column(String)
-    # description = Column(String)
-    # services = Column(JSON)
+
+class BookingConfirmation(Base):
+    __tablename__ = 'booking_confirmations'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    token = Column(String, unique=True)
+    expires_at = Column(DateTime)
+    is_confirmed = Column(Boolean, default=False)
+    
+    user = relationship("User", back_populates="confirmations")
+
+    def is_expired(self):
+        return datetime.now(timezone.utc) > self.expires_at

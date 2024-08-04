@@ -6,7 +6,7 @@ from pydantic import EmailStr
 from app.tasks.celery import celery
 from PIL import Image
 
-from app.tasks.email_templates import create_booking_confirmation_template
+from app.tasks.email_templates import create_booking_confirmation_link_template, create_booking_confirmation_template
 
 
 @celery.task
@@ -26,6 +26,15 @@ def send_booking_confirmation_email(
     email_to: EmailStr
 ):
     msg_content = create_booking_confirmation_template(booking, email_to)
+
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        server.login(settings.SMTP_USER, settings.SMTP_PASS)
+        server.send_message(msg_content)
+
+
+@celery.task
+def send_confirmation_email_with_link(email: str, token: str):
+    msg_content = create_booking_confirmation_link_template(email, token)
 
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASS)

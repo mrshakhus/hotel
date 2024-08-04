@@ -15,6 +15,10 @@ class IncorrectTokenFortmat(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Неверный формат токена"
 
+class IncorrectOrAbcentToken(BookingException):
+    status_code=status.HTTP_401_UNAUTHORIZED
+    detail="Неверный формат токена или токен отсутствует"
+
 class TokenExpiredException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Токен истек"

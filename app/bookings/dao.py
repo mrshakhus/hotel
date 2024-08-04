@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+import secrets
 
 from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from app.bookings.models import Bookings
+from app.bookings.models import Bookings, BookingConfirmation
 from app.bookings.schemas import SBooking
 from app.dao.base import BaseDAO
 from app.logger import logger
@@ -99,6 +100,7 @@ class BookingDAO(BaseDAO):
                     return SBooking.model_validate(result) 
                 else:
                     return None
+        #В других классах DAO тоже писать try-except
         except (SQLAlchemyError, Exception) as e:
             if isinstance(e, SQLAlchemyError):
                 msg = "Database Exc"
@@ -124,3 +126,44 @@ class BookingDAO(BaseDAO):
             delete_booking = delete(Bookings).filter_by(id=booking_id, user_id=user_id)
             await session.execute(delete_booking)
             await session.commit()
+
+
+class BookingConfirmationDAO(BaseDAO):
+    model = BookingConfirmation
+
+    @classmethod
+    async def create(cls, user_id: int):
+        token = secrets.token_urlsafe()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
+        async with async_session_maker() as session:
+            confirmation = {
+                "user_id": user_id,
+                "token": token,
+                "expires_at": expires_at
+            }
+
+            add_confimation = (
+                insert(BookingConfirmation)
+                .values(confirmation)
+                .returning(BookingConfirmation.token)
+            )
+            confirmation_token = await session.execute(add_confimation)
+            await session.commit()
+            return confirmation_token.mappings().one()
+
+
+    @classmethod
+    async def confirm(cls, token: str):
+        async with async_session_maker() as session:
+            get_confirmation = (
+                select(BookingConfirmation)
+                .filter_by(token=token)
+            )
+            result = await session.execute(get_confirmation)
+            confirmation = result.scalars().first()
+
+            if confirmation and not confirmation.is_expired() and not confirmation.is_confirmed:
+                confirmation.is_confirmed = True
+                await session.commit()
+                return confirmation
+            return None
