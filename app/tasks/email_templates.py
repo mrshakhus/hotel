@@ -50,10 +50,10 @@ async def create_booking_notification_template(
 
     return email
 
-async def create_booking_confirmation_link_template(email: EmailStr, token: str):
+async def create_booking_confirmation_link_template(email_to: EmailStr, token: str):
     email = EmailMessage()
     email["From"] = settings.SMTP_USER
-    email["To"] = email
+    email["To"] = email_to
 
     email.set_content(
         f"""

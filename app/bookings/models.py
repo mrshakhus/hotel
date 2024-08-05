@@ -30,8 +30,6 @@ class BookingConfirmation(Base):
     token = Column(String, unique=True)
     expires_at = Column(DateTime)
     is_confirmed = Column(Boolean, default=False)
-    
-    user = relationship("User", back_populates="confirmations")
 
     def is_expired(self):
-        return datetime.now(timezone.utc) > self.expires_at
+        return datetime.now(timezone.utc).replace(tzinfo=None) > self.expires_at

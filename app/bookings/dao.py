@@ -76,7 +76,7 @@ class BookingDAO(BaseDAO):
                 rooms_left: int = rooms_left.scalar()
                 # print(rooms_left)
 
-                if rooms_left > 0:
+                if int(rooms_left) > 0:
                     get_price = select(Rooms.price).filter_by(id=room_id)
                     price = await session.execute(get_price)
                     price: int = price.scalar()
@@ -139,17 +139,16 @@ class BookingConfirmationDAO(BaseDAO):
             confirmation = {
                 "user_id": user_id,
                 "token": token,
-                "expires_at": expires_at
+                "expires_at": expires_at.replace(tzinfo=None)
             }
 
             add_confimation = (
                 insert(BookingConfirmation)
                 .values(confirmation)
-                .returning(BookingConfirmation.token)
             )
-            confirmation_token = await session.execute(add_confimation)
+            await session.execute(add_confimation)
             await session.commit()
-            return confirmation_token.mappings().one()
+            return token
 
 
     @classmethod
