@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
+import uvicorn
 from app.admin.views import BookingsAdmin, HotelsAdmin, RoomsAdmin, UsersAdmin
 from app.admin.auth import authentication_backend
 from app.config import settings
@@ -37,13 +38,20 @@ sentry_sdk.init(
 )
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    redis = await aioredis.from_url(f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}")
-    FastAPICache.init(RedisBackend(redis), prefix="cache")
-    yield
-    await redis.close()
+async def lifespan(app: FastAPI):
+    try:
+        redis = aioredis.from_url(f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}", encoding="utf-8", decode_responses=True)
+        FastAPICache.init(RedisBackend(redis), prefix="cache")
+        yield
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
+    finally:
+        await redis.close()
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Бронирование Отелей",
+    lifespan=lifespan
+)
 
 
 app.include_router(users_router)
@@ -88,6 +96,7 @@ app = VersionedFastAPI(app,
     # middleware=[
     #     Middleware(SessionMiddleware, secret_key='mysecretkey')
     # ]
+    lifespan=lifespan
 )
 
 

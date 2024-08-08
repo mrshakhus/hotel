@@ -11,13 +11,13 @@ class TokenAbsentException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Отсутствует токен"
 
-class IncorrectTokenFortmat(BookingException):
+class IncorrectTokenFortmatException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Неверный формат токена"
 
-class IncorrectOrAbcentToken(BookingException):
-    status_code=status.HTTP_401_UNAUTHORIZED
-    detail="Неверный формат токена или токен отсутствует"
+class BookingAlreadyConfirmedException(BookingException):
+    status_code=status.HTTP_409_CONFLICT
+    detail="Бронирование было подтверждено"
 
 class TokenExpiredException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
@@ -45,3 +45,16 @@ class WrongDatesException(BookingException):
 class MoreThan30DaysException(BookingException):
     status_code=status.HTTP_400_BAD_REQUEST
     detail="Указанный период больше 30 дней"
+
+class CacheDataExpiredException(BookingException):
+    status_code=status.HTTP_410_GONE
+    detail="Данные истекли или недоступны"
+
+class ServiceUnavailableException(BookingException):
+    status_code=status.HTTP_503_SERVICE_UNAVAILABLE
+    detail="Сервис временно недоступен. Пожалуйста, попробуйте позже"
+
+class UnexpectedErrorException(BookingException):
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    detail="Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже"
+

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from fastapi import Depends, Request
 from jose import JWTError, jwt
 from app.config import settings
-from app.exceptions import IncorrectTokenFortmat, TokenAbsentException, TokenExpiredException, UserIsNotPresentException
+from app.exceptions import IncorrectTokenFortmatException, TokenAbsentException, TokenExpiredException, UserIsNotPresentException
 from app.users.dao import UsersDAO
 
 
@@ -18,7 +18,7 @@ async def get_current_user(token: str = Depends(get_token)):
             token, settings.SECRET_KEY, settings.ALGORITHM
         )
     except JWTError:
-        raise IncorrectTokenFortmat
+        raise IncorrectTokenFortmatException
     
     expire: str = payload.get("exp")
     if not expire or int(expire) < datetime.now(timezone.utc).timestamp():

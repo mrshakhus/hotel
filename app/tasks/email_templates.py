@@ -4,26 +4,6 @@ from pydantic import EmailStr
 from app.config import settings
 
 
-def create_booking_confirmation_template(
-        booking: dict,
-        email_to: EmailStr
-):
-    email = EmailMessage()
-
-    email["Subject"] = "Подтверждение бронирования"
-    email["From"] = settings.SMTP_USER
-    email["To"] = email_to
-
-    email.set_content(
-        f"""
-            <h1>Подтверждение бронирования</h1>
-            Вы забронировали отлель с {booking["date_from"]} по {booking["date_to"]}
-        """,
-        subtype="html"
-    )
-
-    return email
-
 async def create_booking_notification_template(
         email_to: EmailStr,
         date_from: date,
@@ -50,15 +30,30 @@ async def create_booking_notification_template(
 
     return email
 
-async def create_booking_confirmation_link_template(email_to: EmailStr, token: str):
+
+async def create_booking_confirmation_link_template(booking_info: dict, token: str):
     email = EmailMessage()
     email["From"] = settings.SMTP_USER
-    email["To"] = email_to
+    email["To"] = booking_info["user_email"]
+    email["Subject"] = "Подтверждение бронирования"
+
+    services = ""
+    if booking_info["services"] != []:
+        services += "<br>Сервисы номера:"
+        for service in booking_info["services"]:
+            services += f"<br> - {service}"
 
     email.set_content(
         f"""
-            <h1>Подтвердите бронирование</h1>
-            Пожалуйста, перейдите по ссылке для подтверждения бронирования: http://127.0.0.1:8000/v1/bookings/confirmation/{token}
+            <h1>Вы бронировали номер в отеле "{booking_info["hotel_name"]}"</h1>
+            <br>Адрес отеля: {booking_info["location"]}
+            <br>Название номера: {booking_info["name"]}
+            <br>Описание номера: {booking_info["description"]}
+            {services} 
+            <br>Заселение: {booking_info["date_from"]}
+            <br>Выселение: {booking_info["date_to"]}
+
+            <br><a href="http://127.0.0.1:8000/v1/bookings/confirmation/{token}">ПОДТВЕРДИТЬ</a>
         """,
         subtype="html"
     )
