@@ -3,11 +3,11 @@ import secrets
 
 from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from app.bookings.models import Bookings, BookingConfirmation
+from app.bookings.models import Bookings, BookingConfirmations
 from app.bookings.schemas import SBooking
 from app.dao.base import BaseDAO
 from app.dao.exception_handlers import handle_db_exception
-from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UnexpectedErrorException
+from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UnexpectedErrorException, InvalidDatesException
 from app.hotels.models import Hotels
 from app.logger import logger
 
@@ -25,7 +25,11 @@ class BookingDAO(BaseDAO):
         room_id: int,
         date_from: date,
         date_to: date,
-        ):
+    ):
+        if date_from >= date_to:
+            raise InvalidDatesException
+        elif (date_to - date_from).days > 30:
+            raise MoreThan30DaysException
         try:
             async with async_session_maker() as session:
                 """
@@ -77,8 +81,11 @@ class BookingDAO(BaseDAO):
                 # print(get_rooms_left.compile(engine, compile_kwargs = {"literal_binds": True}))
                 rooms_left = await session.execute(get_rooms_left)
                 rooms_left: int = rooms_left.scalar()
+                if not isinstance(rooms_left, int):
+                    raise NoRoomFoundException
+                
 
-                if int(rooms_left) > 0:
+                if rooms_left > 0:
                     get_price = select(Rooms.price).filter_by(id=room_id)
                     price = await session.execute(get_price)
                     price: int = price.scalar()
@@ -99,22 +106,29 @@ class BookingDAO(BaseDAO):
                     result = booking.mappings().one()["Bookings"]
                     return SBooking.model_validate(result) 
                 else:
-                    extra = { 
-                        "user_id": user_id, 
-                        "room_id": room_id, 
-                        "date_from": date_from, 
-                        "date_to": date_to
-                    }
-                    logger.info(extra=extra, exc_info=True)
                     raise RoomCanNotBeBooked
                 
-        except (SQLAlchemyError, Exception) as e:
+        except (
+            SQLAlchemyError, 
+            NoRoomFoundException, 
+            RoomCanNotBeBooked, 
+            Exception,
+            ) as e:
             extra = { 
                 "user_id": user_id, 
                 "room_id": room_id, 
                 "date_from": date_from, 
                 "date_to": date_to
             }
+            
+            if isinstance(e, NoRoomFoundException):
+                #logger.info(msg="", extra=extra, exc_info=True)
+                raise NoRoomFoundException
+            
+            if isinstance(e, RoomCanNotBeBooked):
+                #logger.info(msg="", extra=extra, exc_info=True)
+                raise RoomCanNotBeBooked
+            
             handle_db_exception(e, extra)
 
 
@@ -126,15 +140,31 @@ class BookingDAO(BaseDAO):
     ):
         try:
             async with async_session_maker() as session:
-                delete_booking = delete(Bookings).filter_by(id=booking_id, user_id=user_id)
-                await session.execute(delete_booking)
-                await session.commit()
+                delete_booking = (
+                    delete(Bookings)
+                    .filter_by(id=booking_id, user_id=user_id)
+                    .returning(Bookings.id, Bookings.user_id)
+                )
+                result = await session.execute(delete_booking)
+                booking = result.mappings().all()
 
-        except (SQLAlchemyError, Exception) as e:
+                if not booking:
+                    raise NoBookingToDeleteException
+                
+                await session.commit()
+                return booking[0]
+            
+        except (SQLAlchemyError, NoBookingToDeleteException, Exception) as e:
             extra = { 
                 "user_id": user_id, 
                 "booking_id": booking_id
             }
+            
+            if isinstance(e, NoBookingToDeleteException):
+                msg="Booking not found for deleting"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise NoBookingToDeleteException
+
             handle_db_exception(e, extra)
 
     
@@ -201,7 +231,7 @@ class BookingDAO(BaseDAO):
 
 
 class BookingConfirmationDAO(BaseDAO):
-    model = BookingConfirmation
+    model = BookingConfirmations
 
     @classmethod
     async def create(
@@ -219,7 +249,7 @@ class BookingConfirmationDAO(BaseDAO):
             
             async with async_session_maker() as session:
                 add_confimation = (
-                    insert(BookingConfirmation)
+                    insert(BookingConfirmations)
                     .values(confirmation)
                 )
                 await session.execute(add_confimation)
@@ -241,7 +271,7 @@ class BookingConfirmationDAO(BaseDAO):
         try:
             async with async_session_maker() as session:
                 get_confirmation = (
-                    select(BookingConfirmation)
+                    select(BookingConfirmations)
                     .filter_by(token=token)
                 )
                 result = await session.execute(get_confirmation)

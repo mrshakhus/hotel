@@ -1,8 +1,4 @@
-import asyncio
 from datetime import datetime
-
-from functools import wraps
-from unittest import mock
 
 import json
 from fastapi_cache import FastAPICache
@@ -29,7 +25,6 @@ async def prepare_database():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        print("TEEEEEEEEEEEEEEEEEEEST!!!!!!!!!!!!!")
 
     def open_mock_json(model: str):
         with open(f"app/tests/mock_{model}.json", mode="r", encoding="utf-8") as file:
@@ -41,8 +36,8 @@ async def prepare_database():
     bookings = open_mock_json("bookings")
 
     for booking in bookings:
-        booking["date_from"] = datetime.strptime(booking["date_from"], "%Y-%m-%d")
-        booking["date_to"] = datetime.strptime(booking["date_to"], "%Y-%m-%d")
+        booking["date_from"] = datetime.strptime(booking["date_from"], "%Y-%m-%d").date()
+        booking["date_to"] = datetime.strptime(booking["date_to"], "%Y-%m-%d").date()
 
     async with async_session_maker() as session:
         add_hotels = insert(Hotels).values(hotels)

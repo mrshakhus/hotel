@@ -8,11 +8,10 @@ from pydantic import TypeAdapter
 from app.bookings.dao import BookingConfirmationDAO, BookingDAO
 from app.bookings.schemas import SBooking
 from app.config import settings
-from app.exceptions import CacheDataExpiredException, RoomCanNotBeBooked
+from app.exceptions import CacheDataExpiredException
 from app.bookings.dependencies import get_cache, send_confirmation_email_with_link, set_cache
 from app.users.dependencies import get_current_user
 from app.users.models import Users
-from app.logger import logger
 
 router = APIRouter(prefix="/bookings", tags=["Бронирование"])
 
@@ -25,7 +24,10 @@ async def get_bookings(user: Users = Depends(get_current_user)):
 
 @router.delete("/{booking_id}", status_code=204)
 @version(1)
-async def delete_booking(booking_id: int, user: Users = Depends(get_current_user)):
+async def delete_booking(
+    booking_id: int, 
+    user: Users = Depends(get_current_user)
+):
     await BookingDAO.delete(user.id, booking_id)
 
 

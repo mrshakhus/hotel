@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class SBooking(BaseModel):
     id: int
@@ -19,5 +19,15 @@ class SBookingConfirmation(BaseModel):
     token: str
     expires_at: datetime
     is_confirmed: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SBookingFullInfo(BaseModel):
+    hotel_id: int = Field(..., ge=0)
+    name: str
+    description: str
+    services: list[str]
+    hotel_name: str
+    location: str
 
     model_config = ConfigDict(from_attributes=True)

@@ -6,8 +6,8 @@ def handle_db_exception(e: Exception, extra: dict):
     if isinstance(e, SQLAlchemyError):
         msg = "Database Exception: Cannot get info"
         logger.error(msg, extra=extra, exc_info=True)
-        raise ServiceUnavailableException()
+        raise ServiceUnavailableException
     else:
         msg = "Unknown Exception: Cannot get info"
         logger.error(msg, extra=extra, exc_info=True)
-        raise UnexpectedErrorException()
+        raise UnexpectedErrorException

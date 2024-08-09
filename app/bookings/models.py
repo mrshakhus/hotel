@@ -22,7 +22,7 @@ class Bookings(Base):
         return f"Бронь #{self.id}"
     
 
-class BookingConfirmation(Base):
+class BookingConfirmations(Base):
     __tablename__ = 'booking_confirmations'
     
     id = Column(Integer, primary_key=True)
@@ -30,6 +30,8 @@ class BookingConfirmation(Base):
     token = Column(String, unique=True)
     expires_at = Column(DateTime)
     is_confirmed = Column(Boolean, default=False)
+
+    user = relationship("Users", back_populates="booking_confirmation")
 
     def is_expired(self):
         return datetime.now(timezone.utc).replace(tzinfo=None) > self.expires_at

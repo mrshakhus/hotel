@@ -5,7 +5,7 @@ from fastapi_cache.decorator import cache
 from fastapi import APIRouter
 from pydantic import EmailStr, TypeAdapter
 
-from app.exceptions import MoreThan30DaysException, WrongDatesException
+from app.exceptions import MoreThan30DaysException, InvalidDatesException
 from app.hotels.dao import HotelDAO
 from app.hotels.schemas import SHotels
 from app.tasks.dao import BookingTaskDAO
@@ -18,18 +18,23 @@ router = APIRouter(
     tags=['Отели']
 )
 
-@router.get("/{location}", status_code=200) #TO DO new schema HotelInfo
+@router.get("/{location}", status_code=200, response_model=list[SHotels]) 
+#TO DO new schema HotelInfo
 @cache(expire=30)
 async def get_hotels(location: str, date_from: date, date_to: date):
+    #TODO вынести в exceptions.py, создать новую папку
     if date_from >= date_to:
-        raise WrongDatesException
+        raise InvalidDatesException
     elif (date_to - date_from).days > 30:
         raise MoreThan30DaysException
     
     hotels = await HotelDAO.get_all_hotels(location, date_from, date_to)
-    hotels_adapter = TypeAdapter(list[SHotels])
-    hotels_json = hotels_adapter.validate_python(hotels)
-    return hotels_json
+    #Это все заменено на response_model
+    # hotels_adapter = TypeAdapter(list[SHotels])
+    # hotels_json = hotels_adapter.validate_python(hotels)
+    # return hotels_json
+
+    return hotels
 
 
 @router.get("/{hotel_id}/rooms", status_code=200) # Ideally should validate data

@@ -38,7 +38,7 @@ class RoomCanNotBeBooked(BookingException):
     status_code=status.HTTP_409_CONFLICT
     detail="Комната не может быть забронирована"
 
-class WrongDatesException(BookingException):
+class InvalidDatesException(BookingException):
     status_code=status.HTTP_400_BAD_REQUEST
     detail="Указаны некорректные даты"
 
@@ -58,3 +58,10 @@ class UnexpectedErrorException(BookingException):
     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     detail="Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже"
 
+class NoRoomFoundException(BookingException):
+    status_code=status.HTTP_404_NOT_FOUND
+    detail="Комната отсутствует"
+
+class NoBookingToDeleteException(BookingException):
+    status_code=status.HTTP_409_CONFLICT
+    detail="Бронирование для удаления не найдено"

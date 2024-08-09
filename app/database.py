@@ -7,7 +7,6 @@ from app.config import settings
 if settings.MODE == "TEST":
     DATABASE_URL = settings.TEST_DATABASE_URL
     DATABASE_PARAMS ={"poolclass": NullPool}
-    print("TEST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 else:
     DATABASE_URL = settings.DATABASE_URL
     DATABASE_PARAMS ={}
