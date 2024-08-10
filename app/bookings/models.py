@@ -26,7 +26,7 @@ class BookingConfirmations(Base):
     __tablename__ = 'booking_confirmations'
     
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     token = Column(String, unique=True)
     expires_at = Column(DateTime)
     is_confirmed = Column(Boolean, default=False)

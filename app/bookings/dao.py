@@ -1,13 +1,15 @@
 from datetime import date, datetime, timedelta, timezone
 import secrets
+from sqlalchemy.exc import IntegrityError
 
+from asyncpg.exceptions import ForeignKeyViolationError
 from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from app.bookings.models import Bookings, BookingConfirmations
 from app.bookings.schemas import SBooking
 from app.dao.base import BaseDAO
 from app.dao.exception_handlers import handle_db_exception
-from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UnexpectedErrorException, InvalidDatesException
+from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UnexpectedErrorException, InvalidDatesException, UserIsNotPresentException
 from app.hotels.models import Hotels
 from app.logger import logger
 
@@ -122,11 +124,12 @@ class BookingDAO(BaseDAO):
             }
             
             if isinstance(e, NoRoomFoundException):
-                #logger.info(msg="", extra=extra, exc_info=True)
+                msg="No room was found"
+                logger.error(msg="", extra=extra, exc_info=True)
                 raise NoRoomFoundException
             
             if isinstance(e, RoomCanNotBeBooked):
-                #logger.info(msg="", extra=extra, exc_info=True)
+                logger.error(msg="", extra=extra, exc_info=True)
                 raise RoomCanNotBeBooked
             
             handle_db_exception(e, extra)
@@ -161,7 +164,7 @@ class BookingDAO(BaseDAO):
             }
             
             if isinstance(e, NoBookingToDeleteException):
-                msg="Booking not found for deleting"
+                msg="Booking not found for deletion"
                 logger.error(msg, extra=extra, exc_info=True)
                 raise NoBookingToDeleteException
 
@@ -199,6 +202,7 @@ class BookingDAO(BaseDAO):
                 """
                 booked_hotel = (
                     select(
+                        Hotels.id.label("hotel_id"),
                         Hotels.name.label("hotel_name"),
                         Hotels.location
                     )
@@ -213,18 +217,32 @@ class BookingDAO(BaseDAO):
                 SELECT * FROM booked_room, booked_hotel
                 """
                 get_full_info = (
-                    select(booked_room, booked_hotel)
+                    select(booked_room, booked_hotel.c.hotel_name, booked_hotel.c.location)
+                    .select_from(booked_room)
+                    .join(
+                        booked_hotel,
+                        booked_hotel.c.hotel_id == booked_room.c.hotel_id
+                    )
                 )
 
                 result = await session.execute(get_full_info)
                 full_info = result.mappings().all()
 
+                if not full_info:
+                    raise NoRoomFoundException
+
                 return dict(full_info[0])
             
-        except (SQLAlchemyError, Exception) as e:
+        except (SQLAlchemyError, NoRoomFoundException, Exception) as e:
             extra = { 
                 "room_id": room_id
             }
+
+            if isinstance(e, NoRoomFoundException):
+                msg="No room was found"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise NoRoomFoundException
+
             handle_db_exception(e, extra)
 
 
@@ -256,10 +274,16 @@ class BookingConfirmationDAO(BaseDAO):
                 await session.commit()
                 return token
         
-        except (SQLAlchemyError, Exception) as e:
+        except (SQLAlchemyError, IntegrityError, Exception) as e:
             extra = { 
                 "user_id": user_id
             }
+
+            if isinstance(e, IntegrityError):
+                msg="No user was found"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise UserIsNotPresentException
+
             handle_db_exception(e, extra)
             
 
@@ -277,7 +301,6 @@ class BookingConfirmationDAO(BaseDAO):
                 result = await session.execute(get_confirmation)
                 confirmation = result.scalars().first()
 
-
                 if not confirmation:
                     raise IncorrectTokenFortmatException
 
@@ -291,8 +314,30 @@ class BookingConfirmationDAO(BaseDAO):
                 await session.commit()
                 return confirmation
             
-        except (SQLAlchemyError, Exception) as e:
+        except (
+            SQLAlchemyError, 
+            Exception,
+            IncorrectTokenFortmatException,
+            TokenExpiredException,
+            BookingAlreadyConfirmedException
+            ) as e:
             extra = {
                 "token": token
             }
+
+            if isinstance(e, IncorrectTokenFortmatException):
+                msg="Token isn't found"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise IncorrectTokenFortmatException
+
+            if isinstance(e, TokenExpiredException):
+                msg="Token expired"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise TokenExpiredException
+
+            if isinstance(e, BookingAlreadyConfirmedException):
+                msg="Booking already confirmed"
+                logger.error(msg, extra=extra, exc_info=True)
+                raise BookingAlreadyConfirmedException
+
             handle_db_exception(e, extra)

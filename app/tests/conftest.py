@@ -12,7 +12,7 @@ from app.database import Base, async_session_maker, engine
 from app.hotels.models import Hotels
 from app.hotels.rooms.models import Rooms
 from app.users.models import Users
-from app.bookings.models import Bookings
+from app.bookings.models import BookingConfirmations, Bookings
 
 from fastapi.testclient import TestClient
 from app.main import app as fastapi_app
@@ -34,21 +34,27 @@ async def prepare_database():
     rooms = open_mock_json("rooms")
     users = open_mock_json("users")
     bookings = open_mock_json("bookings")
+    booking_confirmations = open_mock_json("booking_confirmations")
 
     for booking in bookings:
         booking["date_from"] = datetime.strptime(booking["date_from"], "%Y-%m-%d").date()
         booking["date_to"] = datetime.strptime(booking["date_to"], "%Y-%m-%d").date()
+
+    for confirmation in booking_confirmations:
+        confirmation["expires_at"] = datetime.fromisoformat(confirmation["expires_at"])
 
     async with async_session_maker() as session:
         add_hotels = insert(Hotels).values(hotels)
         add_rooms = insert(Rooms).values(rooms)
         add_users = insert(Users).values(users)
         add_bookings = insert(Bookings).values(bookings)
+        add_booking_confirmations = insert(BookingConfirmations).values(booking_confirmations)
 
         await session.execute(add_hotels)
         await session.execute(add_rooms)
         await session.execute(add_users)
         await session.execute(add_bookings)
+        await session.execute(add_booking_confirmations)
 
         await session.commit()
 

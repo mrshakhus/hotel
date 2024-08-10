@@ -14,8 +14,8 @@ class SBooking(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class SBookingConfirmation(BaseModel):
-    id: int
-    user_id: int
+    id: int = Field(..., gt=0)
+    user_id: int = Field(..., gt=0)
     token: str
     expires_at: datetime
     is_confirmed: bool
@@ -23,7 +23,7 @@ class SBookingConfirmation(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class SBookingFullInfo(BaseModel):
-    hotel_id: int = Field(..., ge=0)
+    hotel_id: int = Field(..., gt=0)
     name: str
     description: str
     services: list[str]
