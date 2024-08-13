@@ -1,4 +1,5 @@
 from sqlalchemy import JSON, Column, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.database import Base
 

@@ -1,3 +1,4 @@
+import enum
 from pydantic import BaseModel, EmailStr
 
 

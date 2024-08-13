@@ -2,7 +2,7 @@ import asyncio
 from datetime import date, datetime, timezone
 import smtplib
 from fastapi_cache.decorator import cache
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import EmailStr, TypeAdapter
 
 from app.exceptions import MoreThan30DaysException, InvalidDatesException
@@ -19,16 +19,30 @@ router = APIRouter(
 )
 
 @router.get("/{location}", status_code=200, response_model=list[SHotels]) 
-#TO DO new schema HotelInfo
+#TODO new schema HotelInfo
 @cache(expire=30)
-async def get_hotels(location: str, date_from: date, date_to: date):
+async def get_hotels(
+    location: str, 
+    date_from: date, 
+    date_to: date,
+    min_price: int = Query(100, ge=0), 
+    max_price: int = Query(100_000, ge=0),
+    services: list[str] = Query(["Парковка"]) 
+):
     #TODO вынести в exceptions.py, создать новую папку
     if date_from >= date_to:
         raise InvalidDatesException
     elif (date_to - date_from).days > 30:
         raise MoreThan30DaysException
     
-    hotels = await HotelDAO.get_all_hotels(location, date_from, date_to)
+    hotels = await HotelDAO.get_all_hotels(
+        location, 
+        date_from, 
+        date_to,
+        min_price,
+        max_price,
+        services
+    )
     #Это все заменено на response_model
     # hotels_adapter = TypeAdapter(list[SHotels])
     # hotels_json = hotels_adapter.validate_python(hotels)
@@ -38,7 +52,11 @@ async def get_hotels(location: str, date_from: date, date_to: date):
 
 
 @router.get("/{hotel_id}/rooms", status_code=200) # Ideally should validate data
-async def get_rooms(hotel_id: int, date_from: date, date_to: date):
+async def get_rooms(
+    hotel_id: int, 
+    date_from: date, 
+    date_to: date
+):
     rooms = await HotelDAO.get_all_rooms(hotel_id, date_from, date_to)
 
     return rooms

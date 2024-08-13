@@ -65,3 +65,7 @@ class NoRoomFoundException(BookingException):
 class NoBookingToDeleteException(BookingException):
     status_code=status.HTTP_409_CONFLICT
     detail="Бронирование для удаления не найдено"
+
+class NoRightsException(BookingException):
+    status_code=status.HTTP_403_FORBIDDEN
+    detail="У вас нет прав на выполнение этого действия"

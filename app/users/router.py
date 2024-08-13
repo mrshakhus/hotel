@@ -13,10 +13,6 @@ router = APIRouter(
     tags=["Аутентификация и регистрация"]
 )
 
-@router.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
 @router.post("/register")
 async def register_user(user_data: SUserAuth):
     user_exists_already = await UsersDAO.find_one_or_none(email=user_data.email)
@@ -27,7 +23,10 @@ async def register_user(user_data: SUserAuth):
 
 
 @router.post("/login")
-async def login_user(response: Response, user_data: SUserAuth):
+async def login_user(
+    response: Response, 
+    user_data: SUserAuth
+):
     user = await authenticate_user(user_data.email, user_data.password)
     # if not user:
     #     raise IncorrectEmailOrPasswordException
@@ -37,11 +36,15 @@ async def login_user(response: Response, user_data: SUserAuth):
 
 
 @router.post("/logout")
-async def logout_user(response: Response):
+async def logout_user(
+    response: Response
+):
     response.delete_cookie("booking_access_token")
 
 @router.get("/me")
-async def get_user_me(current_user: Users = Depends(get_current_user)):
+async def get_user_me(
+    current_user: Users = Depends(get_current_user)
+):
     return current_user
 
     

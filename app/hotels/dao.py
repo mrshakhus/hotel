@@ -1,12 +1,20 @@
 from datetime import date
+import json
 
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import and_, case, func, literal, or_, select, text
+from sqlalchemy.dialects.postgresql import JSONB
 from app.bookings.models import Bookings
 from app.dao.base import BaseDAO
 from app.hotels.models import Hotels
 from app.database import async_session_maker
 from app.hotels.rooms.models import Rooms
-
+"""
+AND (
+        SELECT COUNT(DISTINCT service)
+        FROM json_array_elements_text(hotels.services::json) AS service
+        WHERE service IN ('Wi-Fi', 'Парковка')
+    ) = 2
+"""
 
 class HotelDAO(BaseDAO):
     model = Hotels
@@ -16,25 +24,59 @@ class HotelDAO(BaseDAO):
         cls,
         location: str,
         date_from: date,
-        date_to: date
+        date_to: date, 
+        min_price: int = None, 
+        max_price: int = None, 
+        services: list[str] = None
     ):
         async with async_session_maker() as session:
             """
-            --1.
-            WITH needed_hotels AS(
-            SELECT id, room_quantity
-            FROM hotels
-            WHERE location LIKE '%Алтай%'
+            WITH needed_rooms AS(
+                SELECT id, hotel_id
+                FROM rooms
+                WHERE price > 100 
+                AND price < 100000
+            ),
+            """ 
+            needed_rooms = (
+                select(Rooms.id, Rooms.hotel_id)
+                .where(
+                    and_(
+                        Rooms.price > min_price,
+                        Rooms.price < max_price
+                    )
+                )
+            ).cte("needed_rooms")
+
+            """ 
+            needed_hotels AS(
+                SELECT DISTINCT hotels.id, hotels.room_quantity
+                FROM hotels
+                LEFT JOIN needed_rooms
+                ON needed_rooms.hotel_id = hotels.id
+                WHERE hotels.location LIKE '%Алтай%'
+                AND hotels.services::jsonb @> '["Wi-Fi", "Парковка"]'::jsonb
             ),
             """
+            services = json.dumps(services)
             needed_hotels = (
-                select(Hotels.id, Hotels.room_quantity)
-                .where(Hotels.location.like(f'%{location.strip()}%'))
-                .cte("needed_hotels")
+                select(Hotels.id, Hotels.room_quantity).distinct()
+                .join(
+                    needed_rooms,
+                    needed_rooms.c.hotel_id == Hotels.id
                 )
+                .where(
+                    and_(
+                        Hotels.location.like(f'%{location.strip()}%'),
+                        # func.cast(Hotels.services, type_ =JSONB).contains(
+                        #     func.cast(services, type_ =JSONB) 
+                        # )
+                        Hotels.services.contains(services)
+                    )
+                )
+            ).cte("needed_hotels")
 
             """
-            --2.
             all_booked_rooms AS(
             SELECT room_id
             FROM bookings
@@ -58,7 +100,6 @@ class HotelDAO(BaseDAO):
             )
 
             """
-            --3.
             needed_booked_rooms AS(
             SELECT hotel_id
             FROM rooms
@@ -74,7 +115,6 @@ class HotelDAO(BaseDAO):
             )
 
             """
-            --4.
             calc_needed_hotels AS(
             SELECT needed_hotels.id, needed_hotels.room_quantity - COUNT(needed_booked_rooms.hotel_id)
             AS rooms_left

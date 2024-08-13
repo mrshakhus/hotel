@@ -2,8 +2,10 @@ from datetime import datetime, timezone
 from fastapi import Depends, Request
 from jose import JWTError, jwt
 from app.config import settings
-from app.exceptions import IncorrectTokenFortmatException, TokenAbsentException, TokenExpiredException, UserIsNotPresentException
+from app.exceptions import IncorrectTokenFortmatException, NoRightsException, TokenAbsentException, TokenExpiredException, UserIsNotPresentException
 from app.users.dao import UsersDAO
+from app.users.enums import UserRole
+from app.users.models import Users
 
 
 def get_token(request: Request):
@@ -11,6 +13,7 @@ def get_token(request: Request):
     if not token:
         raise TokenAbsentException
     return token
+
 
 async def get_current_user(token: str = Depends(get_token)):
     try:
@@ -32,4 +35,13 @@ async def get_current_user(token: str = Depends(get_token)):
     if not user:
         raise UserIsNotPresentException
     
+    return user
+
+
+async def check_role(
+    required_roles: list[UserRole], 
+    user: Users = Depends(get_current_user)
+):
+    if user.role not in required_roles:
+        raise NoRightsException
     return user
