@@ -1,35 +1,24 @@
-import shutil
-import pandas as pd
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, Depends, UploadFile
+from pandas import DataFrame
 
-from app.csv_files.dao import SCV_files
+from app.csv_files.dao import SCV_filesDAO
+from app.csv_files.dependencies import save_file_return_df
 
 
 router = APIRouter(
     prefix = "/csv_files",
-    tags = ["Загрузка csv файлов"]
+    tags = ["Загрузка CSV файлов"]
 )
 
 
-def save_file_retutn_df(file: UploadFile, file_name: str):
-    file_path = f"app/static/csv_files/{file_name}.csv"
-    with open(file_path, "wb+") as file_object:
-        shutil.copyfileobj(file.file, file_object)
-
-    df = pd.read_csv(file_path, delimiter=';', encoding='utf-8')
-    return df
-
-
 @router.post("/hotels")
-async def upload_hotels_csv_file(file: UploadFile):
-    df = save_file_retutn_df(file, "hotels")
-    await SCV_files.add_hotels(df)
+async def upload_hotels_csv_file(df: DataFrame = Depends(save_file_return_df)):
+    await SCV_filesDAO.add_hotels(df)
 
 
 @router.post("/rooms")
-async def upload_rooms_csv_file(file: UploadFile):
-    df = save_file_retutn_df(file, "rooms")
-    await SCV_files.add_rooms(df)
+async def upload_rooms_csv_file(df: DataFrame = Depends(save_file_return_df)):
+    await SCV_filesDAO.add_rooms(df)
 
     
 

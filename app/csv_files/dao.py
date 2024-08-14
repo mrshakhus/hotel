@@ -7,7 +7,7 @@ from app.database import async_session_maker
 from app.hotels.rooms.models import Rooms
 
 
-class SCV_files():
+class SCV_filesDAO():
     @classmethod
     async def add_hotels(
         cls,
@@ -16,13 +16,15 @@ class SCV_files():
         async with async_session_maker() as session:
             for _, row in df.iterrows():
                 services = row['services'].replace("'",'"')
+                services = json.loads(services)
                 hotel = {
                     "name": row['name'],
                     "location": row['location'],
-                    "services": json.loads(services),
+                    "services": services,
                     "room_quantity": row['room_quantity'],
                     "image_id": row['image_id']
                 }
+                print(hotel)
 
                 add_hotel = (
                     insert(Hotels)
@@ -41,15 +43,17 @@ class SCV_files():
         async with async_session_maker() as session:
             for _, row in df.iterrows():
                 services = row['services'].replace("'",'"')
+                services = json.loads(services)
                 room = {
                     "hotel_id": row["hotel_id"],
                     "name": row["name"],
                     "description": row["description"],
                     "price": row["price"],
-                    "services": json.loads(services),
+                    "services": services,
                     "quantity": row["quantity"],
                     "image_id": row["image_id"],
                 }
+                print(room)
 
                 add_room = (
                     insert(Rooms)

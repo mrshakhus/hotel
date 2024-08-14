@@ -10,7 +10,7 @@ class Users(Base):
 
     id = Column(Integer, primary_key=True, nullable=False)
     email = Column(String, nullable=False)
-    role = Column(SQLAlchemyEnum(UserRole), nullable=False, default=UserRole.USER)    
+    # role = Column(SQLAlchemyEnum(UserRole), nullable=False, default=UserRole.USER)    
     hashed_password = Column(String, nullable=False)
 
     booking = relationship("Bookings", back_populates="user")

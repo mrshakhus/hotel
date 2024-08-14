@@ -1,6 +1,7 @@
 import asyncio
 from datetime import date, datetime, timezone
 import smtplib
+from fastapi.encoders import jsonable_encoder
 from fastapi_cache.decorator import cache
 from fastapi import APIRouter, Query
 from pydantic import EmailStr, TypeAdapter
@@ -27,7 +28,7 @@ async def get_hotels(
     date_to: date,
     min_price: int = Query(100, ge=0), 
     max_price: int = Query(100_000, ge=0),
-    services: list[str] = Query(["Парковка"]) 
+    hotel_services: list[str] = Query([]),  
 ):
     #TODO вынести в exceptions.py, создать новую папку
     if date_from >= date_to:
@@ -41,23 +42,26 @@ async def get_hotels(
         date_to,
         min_price,
         max_price,
-        services
+        hotel_services
     )
-    #Это все заменено на response_model
-    # hotels_adapter = TypeAdapter(list[SHotels])
-    # hotels_json = hotels_adapter.validate_python(hotels)
-    # return hotels_json
 
-    return hotels
+    return jsonable_encoder(hotels)
 
 
 @router.get("/{hotel_id}/rooms", status_code=200) # Ideally should validate data
 async def get_rooms(
     hotel_id: int, 
     date_from: date, 
-    date_to: date
+    date_to: date,
+    room_services: list[str] = Query([])
+
 ):
-    rooms = await HotelDAO.get_all_rooms(hotel_id, date_from, date_to)
+    rooms = await HotelDAO.get_all_rooms(
+        hotel_id,
+        date_from, 
+        date_to,
+        room_services
+    )
 
     return rooms
 

@@ -1,4 +1,5 @@
 from sqlalchemy import JSON, Column, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -10,7 +11,7 @@ class Rooms(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     price = Column(Integer, nullable=False)
-    services = Column(JSON, nullable=True)
+    services = Column(JSONB, nullable=True)
     quantity = Column(Integer, nullable=False)
     image_id = Column(Integer)
 

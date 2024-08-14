@@ -1,20 +1,14 @@
 from datetime import date
 import json
 
-from sqlalchemy import and_, case, func, literal, or_, select, text
+from sqlalchemy import and_, bindparam, case, cast, func, literal, or_, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from app.bookings.models import Bookings
 from app.dao.base import BaseDAO
 from app.hotels.models import Hotels
 from app.database import async_session_maker
 from app.hotels.rooms.models import Rooms
-"""
-AND (
-        SELECT COUNT(DISTINCT service)
-        FROM json_array_elements_text(hotels.services::json) AS service
-        WHERE service IN ('Wi-Fi', 'Парковка')
-    ) = 2
-"""
+from app.database import engine
 
 class HotelDAO(BaseDAO):
     model = Hotels
@@ -25,9 +19,9 @@ class HotelDAO(BaseDAO):
         location: str,
         date_from: date,
         date_to: date, 
-        min_price: int = None, 
-        max_price: int = None, 
-        services: list[str] = None
+        min_price: int, 
+        max_price: int, 
+        hotel_services: list[str]
     ):
         async with async_session_maker() as session:
             """
@@ -55,23 +49,25 @@ class HotelDAO(BaseDAO):
                 LEFT JOIN needed_rooms
                 ON needed_rooms.hotel_id = hotels.id
                 WHERE hotels.location LIKE '%Алтай%'
-                AND hotels.services::jsonb @> '["Wi-Fi", "Парковка"]'::jsonb
+                AND (
+                    SELECT COUNT(DISTINCT service)
+                    FROM json_array_elements_text(hotels.services::json) AS service
+                    WHERE service IN ('Wi-Fi', 'Парковка')
+                ) = 2
             ),
             """
-            services = json.dumps(services)
             needed_hotels = (
                 select(Hotels.id, Hotels.room_quantity).distinct()
                 .join(
                     needed_rooms,
-                    needed_rooms.c.hotel_id == Hotels.id
+                    needed_rooms.c.hotel_id == Hotels.id,
+                    isouter=True 
                 )
                 .where(
                     and_(
                         Hotels.location.like(f'%{location.strip()}%'),
-                        # func.cast(Hotels.services, type_ =JSONB).contains(
-                        #     func.cast(services, type_ =JSONB) 
-                        # )
-                        Hotels.services.contains(services)
+                        Hotels.services.contains(cast(hotel_services, JSONB)) #Этот правильный!
+                        # -6 часов чтобы понять
                     )
                 )
             ).cte("needed_hotels")
@@ -172,7 +168,8 @@ class HotelDAO(BaseDAO):
         cls,
         hotel_id: int,
         date_from: date,
-        date_to: date
+        date_to: date,
+        room_services: list[str]
     ):
         async with async_session_maker() as session:
             """
@@ -184,7 +181,12 @@ class HotelDAO(BaseDAO):
             """
             needed_rooms = (
                 select(Rooms)
-                .where(Rooms.hotel_id==hotel_id)
+                .where(
+                    and_(
+                        Rooms.hotel_id==hotel_id,
+                        Rooms.services.contains(cast(room_services, JSONB))
+                    )
+                )
             ).cte("needed_rooms")
 
             """
@@ -267,6 +269,7 @@ class HotelDAO(BaseDAO):
                     )
                     .label("rooms_left")
                 )
+                .select_from(ext_needed_rooms)
                 .join(
                     booked_rooms,
                     booked_rooms.c.room_id == ext_needed_rooms.c.id,
@@ -285,8 +288,21 @@ class HotelDAO(BaseDAO):
             """
             get_rooms = (
                 select(ext_needed_rooms)
+                .distinct(ext_needed_rooms.c.id)
                 .column(rooms_left.c.rooms_left)
             )
+
+            all_queries = [needed_rooms,
+                            ext_needed_rooms,
+                            all_booked_rooms,
+                            booked_rooms,
+                            rooms_left,
+                            get_rooms
+                        ]
+            for i, query in enumerate(all_queries):
+                # print(str(i)*20)
+                print(str(query))
+                # print(query.compile(engine, compile_kwargs = {"literal_binds": True}))
 
         result = await session.execute(get_rooms)
         result = result.mappings().all()
