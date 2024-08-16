@@ -62,8 +62,12 @@ class NoRoomFoundException(BookingException):
     status_code=status.HTTP_404_NOT_FOUND
     detail="Комната отсутствует"
 
+class NoHotelFoundException(BookingException):
+    status_code=status.HTTP_404_NOT_FOUND
+    detail="Отель отсутствует"
+
 class NoBookingToDeleteException(BookingException):
-    status_code=status.HTTP_409_CONFLICT
+    status_code=status.HTTP_404_NOT_FOUND
     detail="Бронирование для удаления не найдено"
 
 class NoRightsException(BookingException):

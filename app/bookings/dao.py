@@ -2,14 +2,12 @@ from datetime import date, datetime, timedelta, timezone
 import secrets
 from sqlalchemy.exc import IntegrityError
 
-from asyncpg.exceptions import ForeignKeyViolationError
 from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from app.bookings.models import Bookings, BookingConfirmations
-from app.bookings.schemas import SBooking
 from app.dao.base import BaseDAO
-from app.dao.exception_handlers import handle_db_exception
-from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UnexpectedErrorException, InvalidDatesException, UserIsNotPresentException
+from app.utils.exception_handlers import handle_db_exception, handle_exception, validate_dates
+from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, TokenExpiredException, UserIsNotPresentException
 from app.hotels.models import Hotels
 from app.logger import logger
 
@@ -28,10 +26,7 @@ class BookingDAO(BaseDAO):
         date_from: date,
         date_to: date,
     ):
-        if date_from >= date_to:
-            raise InvalidDatesException
-        elif (date_to - date_from).days > 30:
-            raise MoreThan30DaysException
+        validate_dates(date_from, date_to)
         try:
             async with async_session_maker() as session:
                 """
@@ -106,7 +101,7 @@ class BookingDAO(BaseDAO):
                     booking = await session.execute(add_new_booking)
                     await session.commit()
                     result = booking.mappings().one()["Bookings"]
-                    return SBooking.model_validate(result) 
+                    return result
                 else:
                     raise RoomCanNotBeBooked
                 
@@ -116,22 +111,17 @@ class BookingDAO(BaseDAO):
             RoomCanNotBeBooked, 
             Exception,
             ) as e:
+
             extra = { 
                 "user_id": user_id, 
                 "room_id": room_id, 
                 "date_from": date_from, 
                 "date_to": date_to
             }
-            
-            if isinstance(e, NoRoomFoundException):
-                msg="No room was found"
-                logger.error(msg="", extra=extra, exc_info=True)
-                raise NoRoomFoundException
-            
-            if isinstance(e, RoomCanNotBeBooked):
-                logger.error(msg="", extra=extra, exc_info=True)
-                raise RoomCanNotBeBooked
-            
+
+            handle_exception(e, NoRoomFoundException, extra)
+            handle_exception(e, RoomCanNotBeBooked, extra)
+
             handle_db_exception(e, extra)
 
 
@@ -146,7 +136,7 @@ class BookingDAO(BaseDAO):
                 delete_booking = (
                     delete(Bookings)
                     .filter_by(id=booking_id, user_id=user_id)
-                    .returning(Bookings.id, Bookings.user_id)
+                    .returning(Bookings)
                 )
                 result = await session.execute(delete_booking)
                 booking = result.mappings().all()
@@ -155,18 +145,20 @@ class BookingDAO(BaseDAO):
                     raise NoBookingToDeleteException
                 
                 await session.commit()
-                return booking[0]
+                return booking[0]["Bookings"]
             
-        except (SQLAlchemyError, NoBookingToDeleteException, Exception) as e:
+        except (
+            SQLAlchemyError, 
+            NoBookingToDeleteException, 
+            Exception
+            ) as e:
             extra = { 
                 "user_id": user_id, 
                 "booking_id": booking_id
             }
             
-            if isinstance(e, NoBookingToDeleteException):
-                msg="Booking not found for deletion"
-                logger.error(msg, extra=extra, exc_info=True)
-                raise NoBookingToDeleteException
+            msg="Booking not found for deletion"
+            handle_exception(e, NoBookingToDeleteException, extra, msg)
 
             handle_db_exception(e, extra)
 
@@ -233,15 +225,17 @@ class BookingDAO(BaseDAO):
 
                 return dict(full_info[0])
             
-        except (SQLAlchemyError, NoRoomFoundException, Exception) as e:
+        except (
+            SQLAlchemyError, 
+            NoRoomFoundException, 
+            Exception
+            ) as e:
+
             extra = { 
                 "room_id": room_id
             }
 
-            if isinstance(e, NoRoomFoundException):
-                msg="No room was found"
-                logger.error(msg, extra=extra, exc_info=True)
-                raise NoRoomFoundException
+            handle_exception(e, NoRoomFoundException, extra)
 
             handle_db_exception(e, extra)
 
@@ -274,7 +268,11 @@ class BookingConfirmationDAO(BaseDAO):
                 await session.commit()
                 return token
         
-        except (SQLAlchemyError, IntegrityError, Exception) as e:
+        except (
+            SQLAlchemyError, 
+            IntegrityError, 
+            Exception
+        ) as e:
             extra = { 
                 "user_id": user_id
             }
@@ -320,24 +318,15 @@ class BookingConfirmationDAO(BaseDAO):
             IncorrectTokenFortmatException,
             TokenExpiredException,
             BookingAlreadyConfirmedException
-            ) as e:
+        ) as e:
+
             extra = {
                 "token": token
             }
 
-            if isinstance(e, IncorrectTokenFortmatException):
-                msg="Token isn't found"
-                logger.error(msg, extra=extra, exc_info=True)
-                raise IncorrectTokenFortmatException
-
-            if isinstance(e, TokenExpiredException):
-                msg="Token expired"
-                logger.error(msg, extra=extra, exc_info=True)
-                raise TokenExpiredException
-
-            if isinstance(e, BookingAlreadyConfirmedException):
-                msg="Booking already confirmed"
-                logger.error(msg, extra=extra, exc_info=True)
-                raise BookingAlreadyConfirmedException
+            msg="Token isn't found"
+            handle_exception(e, IncorrectTokenFortmatException, extra, msg)
+            handle_exception(e, TokenExpiredException, extra)
+            handle_exception(e, BookingAlreadyConfirmedException, extra)
 
             handle_db_exception(e, extra)

@@ -4,14 +4,14 @@ import smtplib
 from fastapi.encoders import jsonable_encoder
 from fastapi_cache.decorator import cache
 from fastapi import APIRouter, Query
-from pydantic import EmailStr, TypeAdapter
 
-from app.exceptions import MoreThan30DaysException, InvalidDatesException
 from app.hotels.dao import HotelDAO
-from app.hotels.schemas import SHotels
+from app.hotels.rooms.schemas import SRooms
+from app.hotels.schemas import SHotel, SHotels
 from app.tasks.dao import BookingTaskDAO
 from app.tasks.email_templates import create_booking_notification_template
 from app.config import settings
+from app.utils.exception_handlers import validate_dates
 
 
 router = APIRouter(
@@ -19,8 +19,7 @@ router = APIRouter(
     tags=['Отели']
 )
 
-@router.get("/{location}", status_code=200, response_model=list[SHotels]) 
-#TODO new schema HotelInfo
+@router.get("/{location}", status_code=200, response_model=list[SHotels])
 @cache(expire=30)
 async def get_hotels(
     location: str, 
@@ -30,11 +29,7 @@ async def get_hotels(
     max_price: int = Query(100_000, ge=0),
     hotel_services: list[str] = Query([]),  
 ):
-    #TODO вынести в exceptions.py, создать новую папку
-    if date_from >= date_to:
-        raise InvalidDatesException
-    elif (date_to - date_from).days > 30:
-        raise MoreThan30DaysException
+    validate_dates(date_from, date_to)
     
     hotels = await HotelDAO.get_all_hotels(
         location, 
@@ -48,7 +43,7 @@ async def get_hotels(
     return jsonable_encoder(hotels)
 
 
-@router.get("/{hotel_id}/rooms", status_code=200) # Ideally should validate data
+@router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRooms]) 
 async def get_rooms(
     hotel_id: int, 
     date_from: date, 
@@ -56,6 +51,8 @@ async def get_rooms(
     room_services: list[str] = Query([])
 
 ):
+    validate_dates(date_from, date_to)
+
     rooms = await HotelDAO.get_all_rooms(
         hotel_id,
         date_from, 
@@ -66,8 +63,10 @@ async def get_rooms(
     return rooms
 
 
-@router.get("/id/{hotel_id}", status_code=200)
-async def get_hotel(hotel_id: int):
+@router.get("/id/{hotel_id}", status_code=200, response_model=SHotel)
+async def get_hotel(
+    hotel_id: int
+):
     hotel = await HotelDAO.get_hotel(hotel_id)
     return hotel
 
