@@ -1,6 +1,7 @@
 from datetime import date
 from email.message import EmailMessage
 from pydantic import EmailStr
+from app.bookings.enums import ConfirmationAction
 from app.config import settings
 
 
@@ -35,7 +36,15 @@ async def create_booking_confirmation_link_template(booking_info: dict, token: s
     email = EmailMessage()
     email["From"] = settings.SMTP_USER
     email["To"] = booking_info["user_email"]
-    email["Subject"] = "Подтверждение бронирования"
+
+    if booking_info["action"] == ConfirmationAction.CREATE:
+        email["Subject"] = "Подтверждение бронирования"
+        confirm_type = f"confirmation"
+        string = "бронировали номер"
+    else:
+        email["Subject"] = "Подтверждение отмены бронирования"
+        confirm_type = f"delition_confirmation"
+        string = "отменяете бронирование номера"
 
     services = ""
     if booking_info["services"] != []:
@@ -45,7 +54,7 @@ async def create_booking_confirmation_link_template(booking_info: dict, token: s
 
     email.set_content(
         f"""
-            <h1>Вы бронировали номер в отеле "{booking_info["hotel_name"]}"</h1>
+            <h1>Вы {string} в отеле "{booking_info["hotel_name"]}"</h1>
             <br>Адрес отеля: {booking_info["location"]}
             <br>Название номера: {booking_info["name"]}
             <br>Описание номера: {booking_info["description"]}
@@ -53,7 +62,7 @@ async def create_booking_confirmation_link_template(booking_info: dict, token: s
             <br>Заселение: {booking_info["date_from"]}
             <br>Выселение: {booking_info["date_to"]}
 
-            <br><a href="http://127.0.0.1:8000/v1/bookings/confirmation/{token}">ПОДТВЕРДИТЬ</a>
+            <br><a href=http://127.0.0.1:8000/v1/bookings/{booking_info["booking_id"]}/{confirm_type}/{token}>ПОДТВЕРДИТЬ</a>
         """,
         subtype="html"
     )

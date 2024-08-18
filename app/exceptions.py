@@ -15,7 +15,7 @@ class IncorrectTokenFortmatException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Неверный формат токена"
 
-class BookingAlreadyConfirmedException(BookingException):
+class ActionAlreadyConfirmedException(BookingException):
     status_code=status.HTTP_409_CONFLICT
     detail="Бронирование уже было подтверждено"
 
@@ -25,12 +25,13 @@ class TokenExpiredException(BookingException):
 
 class UserIsNotPresentException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED
+    detail="Пользователь не существует"
 
 class UserAlreadyExistsException(BookingException):
     status_code=status.HTTP_409_CONFLICT
     detail="Пользователь уже существует"
 
-class IncorrectEmailOrPasswordException(BookingException):
+class IncorrectEmailOrPasswordException(BookingException): #Можно удалить
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Неверная почта или пароль" 
 
@@ -61,6 +62,10 @@ class UnexpectedErrorException(BookingException):
 class NoRoomFoundException(BookingException):
     status_code=status.HTTP_404_NOT_FOUND
     detail="Комната отсутствует"
+
+class NoBookingFoundException(BookingException):
+    status_code=status.HTTP_404_NOT_FOUND
+    detail="Бронирование отсутствует"
 
 class NoHotelFoundException(BookingException):
     status_code=status.HTTP_404_NOT_FOUND

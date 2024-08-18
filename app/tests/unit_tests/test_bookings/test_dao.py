@@ -3,7 +3,7 @@ from pydantic import TypeAdapter
 import pytest
 from app.bookings.dao import BookingConfirmationDAO, BookingDAO
 from app.bookings.schemas import SBookingConfirmation, SBookingFullInfo
-from app.exceptions import BookingAlreadyConfirmedException, IncorrectTokenFortmatException, InvalidDatesException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UserIsNotPresentException
+from app.exceptions import ActionAlreadyConfirmedException, IncorrectTokenFortmatException, InvalidDatesException, MoreThan30DaysException, NoBookingToDeleteException, NoRoomFoundException, RoomCanNotBeBooked, ServiceUnavailableException, TokenExpiredException, UserIsNotPresentException
 
 
 @pytest.mark.parametrize("user_id, room_id, date_from, date_to, expected_exception", [
@@ -83,11 +83,11 @@ async def test_delete_booking(user_id, booking_id, expected_exception):
 async def test_get_full_info(room_id, expected_exception):
     if expected_exception:
         with pytest.raises(expected_exception):
-            await BookingDAO.get_full_info(
+            await BookingDAO.get_full_info_room_id(
                 room_id=room_id
             )
     else:
-        booking_full_info = await BookingDAO.get_full_info(
+        booking_full_info = await BookingDAO.get_full_info_room_id(
             room_id=room_id
         )
 
@@ -119,7 +119,7 @@ async def test_create_confirmation(user_id, expected_exception):
     ("valid_token", None),
     ("invalid_token", IncorrectTokenFortmatException),
     ("expired_token", TokenExpiredException),
-    ("confirmed_token", BookingAlreadyConfirmedException),
+    ("confirmed_token", ActionAlreadyConfirmedException),
 ])
 async def test_confirm_booking_dao(token, expected_exception):
     if expected_exception:

@@ -1,15 +1,15 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class SRooms(BaseModel):
-    id: int
-    hotel_id: int
+    id: int = Field(..., gt=0)
+    hotel_id: int = Field(..., gt=0)
     name: str
     description: str
-    price: int
+    price: int = Field(..., ge=0)
     services: list[str]
-    quantity: int
-    image_id: int
-    total_cost: int
-    rooms_left: int
+    quantity: int = Field(..., gt=0)
+    image_id: int = Field(..., gt=0)
+    total_cost: int = Field(..., ge=0)
+    rooms_left: int = Field(..., ge=0)
 
     model_config = ConfigDict(from_attributes=True)

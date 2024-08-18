@@ -35,7 +35,11 @@ async def get_current_user(token: str = Depends(get_token)):
     if not user:
         raise UserIsNotPresentException
     
-    return user
+    user_info = dict()
+    user_info["id"] = user["id"]
+    user_info["email"] = user["email"]
+    
+    return user_info
 
 
 async def check_role(

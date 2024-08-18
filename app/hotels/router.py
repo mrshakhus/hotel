@@ -13,7 +13,6 @@ from app.tasks.email_templates import create_booking_notification_template
 from app.config import settings
 from app.utils.exception_handlers import validate_dates
 
-
 router = APIRouter(
     prefix='/hotels',
     tags=['Отели']
