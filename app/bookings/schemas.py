@@ -21,6 +21,7 @@ class SBooking(BaseModel):
 class SBookingConfirmation(BaseModel):
     id: int = Field(..., gt=0)
     user_id: int = Field(..., gt=0)
+    booking_id: int = Field(..., gt=0)
     action: int
     token: str
     expires_at: datetime

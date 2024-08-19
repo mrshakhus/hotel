@@ -101,10 +101,11 @@ class BookingDAO(BaseDAO):
                     )
                     result = await session.execute(add_new_booking)
                     await session.commit()
-                    booking = result.mappings().all()[0]["Bookings"]
-                    print(type(booking))
-                    print(booking)
-                    return dict(booking)
+
+                    result = result.mappings().first()
+                    booking = result.Bookings.__dict__.copy()
+                    booking.pop('_sa_instance_state', None)
+                    return booking
                 else:
                     raise RoomCanNotBeBooked
                 
@@ -167,7 +168,7 @@ class BookingDAO(BaseDAO):
 
     
     @classmethod
-    async def get_full_info_room_id(
+    async def get_full_info_by_room_id(
         cls,
         room_id: int
     ):
@@ -222,13 +223,13 @@ class BookingDAO(BaseDAO):
                 )
 
                 result = await session.execute(get_full_info)
-                full_info = result.mappings().all()
+                full_info = result.mappings().first()
 
                 if not full_info:
                     raise NoRoomFoundException
                 
-                print(dict(full_info[0]))
-                return dict(full_info[0])
+                # print(dict(full_info))
+                return dict(full_info)
             
         except (
             SQLAlchemyError, 
@@ -253,7 +254,12 @@ class BookingDAO(BaseDAO):
         try:
             async with async_session_maker() as session:
                 booking = (
-                    select(Bookings.id, Bookings.room_id, Bookings.date_from, Bookings.date_to)
+                    select(
+                        Bookings.id.label("booking_id"), 
+                        Bookings.room_id, 
+                        Bookings.date_from, 
+                        Bookings.date_to
+                    )
                     .where(Bookings.id == booking_id)
                 ).cte("booking")
 
@@ -288,7 +294,7 @@ class BookingDAO(BaseDAO):
                         booked_hotel.c.location,
                         booking.c.date_from,
                         booking.c.date_to,
-                        booking.c.id
+                        booking.c.booking_id
                     )
                     .select_from(booked_room)
                     .join(
@@ -302,13 +308,13 @@ class BookingDAO(BaseDAO):
                 )
 
                 result = await session.execute(get_full_info)
-                full_info = result.mappings().all()
+                full_info = result.mappings().first()
 
                 if not full_info:
                     raise NoBookingFoundException
                 
-                print(dict(full_info[0]))
-                return dict(full_info[0])
+                # print(dict(full_info))
+                return dict(full_info)
             
         except (
             SQLAlchemyError, 
@@ -334,12 +340,14 @@ class BookingConfirmationDAO(BaseDAO):
     async def create(
         cls, 
         user_id: int,
+        booking_id: int,
         action: ConfirmationAction
     ):
         try:
             token = secrets.token_urlsafe()
             expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=15)
             confirmation = {
+                    "booking_id": booking_id,
                     "user_id": user_id,
                     "action": action.value,
                     "token": token,
@@ -376,8 +384,7 @@ class BookingConfirmationDAO(BaseDAO):
     @classmethod
     async def confirm(
         cls, 
-        token: str,
-        booking_id: int #TODO добавть это поле в модель BookingConfirmations
+        token: str
     ):
         try:
             async with async_session_maker() as session:
@@ -389,21 +396,7 @@ class BookingConfirmationDAO(BaseDAO):
                 confirmation = result.scalars().first()
 
                 if not confirmation or confirmation.is_expired():
-                    get_booking = (
-                        select(Bookings)
-                        .where(Bookings.id == booking_id)
-                    )
-                    result = await session.execute(get_booking)
-                    booking = result.scalars().one()
-                    print(booking)
-                    booking.status = BookingStatus.EXPIRED
-                    await session.commit()
-
-                    if not confirmation:
-                        raise IncorrectTokenFortmatException
-
-                    if confirmation.is_expired():
-                        raise TokenExpiredException
+                    return confirmation
 
                 if confirmation.is_confirmed:
                     raise ActionAlreadyConfirmedException
@@ -428,5 +421,54 @@ class BookingConfirmationDAO(BaseDAO):
             handle_exception(e, IncorrectTokenFortmatException, extra, msg)
             handle_exception(e, TokenExpiredException, extra)
             handle_exception(e, ActionAlreadyConfirmedException, extra)
+
+            handle_db_exception(e, extra)
+
+
+    @classmethod
+    async def set_booking_status(
+        cls, 
+        confirmation: BookingConfirmations,
+        action: ConfirmationAction,
+    ):
+        try:
+            async with async_session_maker() as session:
+                get_booking = (
+                    select(Bookings)
+                    .where(Bookings.id == confirmation.booking_id)
+                )
+                result = await session.execute(get_booking)
+                booking = result.scalars().one()
+
+                if not confirmation or confirmation.is_expired():
+                    booking.status = BookingStatus.EXPIRED
+                    await session.commit()
+
+                    if confirmation.is_expired():
+                        raise TokenExpiredException
+                    raise IncorrectTokenFortmatException
+                
+                if action.value == ConfirmationAction.CANCEL:
+                    booking.cancelled_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    booking.status = BookingStatus.CANCELLED
+                    await session.commit()
+
+                return booking
+        
+        except (
+            SQLAlchemyError, 
+            Exception,
+            IncorrectTokenFortmatException,
+            TokenExpiredException
+        ) as e:
+
+            extra = {
+                "confirmation": confirmation, 
+                "action": action.value
+            }
+
+            msg="Token isn't found"
+            handle_exception(e, IncorrectTokenFortmatException, extra, msg)
+            handle_exception(e, TokenExpiredException, extra)
 
             handle_db_exception(e, extra)

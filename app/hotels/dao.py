@@ -162,6 +162,7 @@ class HotelDAO(BaseDAO):
                 needed_hotels = []
                 for row in result:
                     hotel = row.Hotels.__dict__.copy()
+                    hotel.pop('_sa_instance_state', None)
                     hotel['rooms_left'] = row.rooms_left
                     needed_hotels.append(hotel)
 

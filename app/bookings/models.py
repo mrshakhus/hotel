@@ -21,6 +21,7 @@ class Bookings(Base):
 
     room = relationship("Rooms", back_populates="booking")
     user = relationship("Users", back_populates="booking")
+    booking_confirmation = relationship("BookingConfirmations", back_populates="booking")
 
     def __str__(self) -> str:
         return f"Бронь #{self.id}"
@@ -31,12 +32,14 @@ class BookingConfirmations(Base):
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    booking_id = Column(Integer, ForeignKey('bookings.id'), nullable=False)
     action = Column(Integer, nullable=False, default=ConfirmationAction.CREATE)
     token = Column(String, unique=True)
     expires_at = Column(DateTime, nullable=False)
     is_confirmed = Column(Boolean, default=False)
 
     user = relationship("Users", back_populates="booking_confirmation")
+    booking = relationship("Bookings", back_populates="booking_confirmation")
 
     def is_expired(self):
         return datetime.now(timezone.utc).replace(tzinfo=None) > self.expires_at

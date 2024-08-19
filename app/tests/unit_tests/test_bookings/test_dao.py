@@ -83,11 +83,11 @@ async def test_delete_booking(user_id, booking_id, expected_exception):
 async def test_get_full_info(room_id, expected_exception):
     if expected_exception:
         with pytest.raises(expected_exception):
-            await BookingDAO.get_full_info_room_id(
+            await BookingDAO.get_full_info_by_room_id(
                 room_id=room_id
             )
     else:
-        booking_full_info = await BookingDAO.get_full_info_room_id(
+        booking_full_info = await BookingDAO.get_full_info_by_room_id(
             room_id=room_id
         )
 

@@ -39,7 +39,7 @@ async def get_hotels(
         hotel_services
     )
 
-    return jsonable_encoder(hotels)
+    return hotels
 
 
 @router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRooms]) 

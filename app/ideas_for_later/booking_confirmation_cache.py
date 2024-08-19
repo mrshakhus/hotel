@@ -22,7 +22,7 @@ async def initiate_booking_request(
     date_to: date,
     user: Users = Depends(get_current_user),
 ):
-    booking_info = await BookingDAO.get_full_info_room_id(room_id=room_id)
+    booking_info = await BookingDAO.get_full_info_by_room_id(room_id=room_id)
 
     date_from = date_from.isoformat()
     date_to = date_to.isoformat()

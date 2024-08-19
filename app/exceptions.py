@@ -17,7 +17,7 @@ class IncorrectTokenFortmatException(BookingException):
 
 class ActionAlreadyConfirmedException(BookingException):
     status_code=status.HTTP_409_CONFLICT
-    detail="Бронирование уже было подтверждено"
+    detail="Действие уже было подтверждено"
 
 class TokenExpiredException(BookingException):
     status_code=status.HTTP_401_UNAUTHORIZED

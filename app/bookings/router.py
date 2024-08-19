@@ -31,12 +31,10 @@ async def initiate_booking_request(
     date_to: date,
     user: Users = Depends(get_current_user),
 ):
-    booking_info = await BookingDAO.get_full_info_room_id(room_id=room_id)
+    booking_info = await BookingDAO.get_full_info_by_room_id(room_id)
     booking = await BookingDAO.add(user["id"], room_id, date_from, date_to)
-    confirmation_token = await BookingConfirmationDAO.create(user["id"], ConfirmationAction.CREATE)
-
-    # date_from = date_from.isoformat()
-    # date_to = date_to.isoformat()
+    confirmation_token = await BookingConfirmationDAO.create(
+        user["id"], booking["id"],  ConfirmationAction.CREATE)
 
     booking_info["booking_id"] = booking["id"]
     booking_info["user_email"] = user["email"]
@@ -50,27 +48,15 @@ async def initiate_booking_request(
     return {"message": "Письмо с ссылкой для подтверждения отправлено"}
 
 
-@router.get("/{booking_id}/confirmations/{token}", status_code=200)
+@router.get("/confirmations/{token}", status_code=200)
 @version(1)
 async def confirm_booking(
-    booking_id: int,
     token: str,
     user: Users = Depends(get_current_user),
 ):
-    confirmation = await BookingConfirmationDAO.confirm(token, booking_id)
+    await BookingConfirmationDAO.confirm(token)
 
     return {"message": "Бронирование успешно подтверждено"}
-
-
-#Для теста
-@router.post("/test", status_code=200)
-@version(1)
-async def test_booking_info(
-    room_id: int
-):
-    booking_info = await BookingDAO.get_full_info_room_id(room_id)
-
-    return booking_info
 
 
 @router.delete("/{booking_id}", status_code=201)
@@ -80,35 +66,40 @@ async def inititate_booking_deletion(
     user: Users = Depends(get_current_user)
 ):
     booking_info = await BookingDAO.get_full_info_by_booking_id(booking_id)
-    booking_info["user_email"] = user["email"]
+    confirmation_token = await BookingConfirmationDAO.create(
+        user["id"], booking_id, ConfirmationAction.CANCEL)
 
-    confirmation_token = await BookingConfirmationDAO.create(user["id"], ConfirmationAction.CANCEL)
+    booking_info["user_email"] = user["email"]
+    booking_info["action"] = ConfirmationAction.CANCEL
+
     await send_confirmation_email_with_link(booking_info, confirmation_token)
     print(confirmation_token)
 
     return {"message": "Письмо с ссылкой для подтверждения отправлено"}
-    # await BookingDAO.delete(user.id, booking_id)
 
 
-@router.get("/{token}", status_code=200)
+@router.get("/cancellation_confirmation/{token}", status_code=200)
 @version(1)
 async def confirm_booking(
     token: str,
     user: Users = Depends(get_current_user),
 ):
-    await BookingConfirmationDAO.confirm(token)
-    
-    cache_key = f"booking:details:{token}"
-    booking_data = await get_cache(cache_key)
-    if not booking_data:
-        raise CacheDataExpiredException
+    confirmation = await BookingConfirmationDAO.confirm(token)
 
-    room_id = booking_data["room_id"]
-    date_from = datetime.strptime(booking_data["date_from"], "%Y-%m-%d").date()
-    date_to = datetime.strptime(booking_data["date_to"], "%Y-%m-%d").date()
+    await BookingConfirmationDAO.set_booking_status(
+        confirmation, 
+        ConfirmationAction.CANCEL
+    )
 
-    await BookingDAO.add(user.id, room_id, date_from, date_to)
-    
-    await FastAPICache.clear(key=cache_key)
+    return {"message": "Отмена бронирования успешно подтверждена"}
 
-    return {"message": "Бронирование успешно подтверждено"}
+
+#Для теста
+@router.post("/test", status_code=200)
+@version(1)
+async def test_booking_info(
+    room_id: int
+):
+    booking_info = await BookingDAO.get_full_info_by_room_id(room_id)
+
+    return booking_info

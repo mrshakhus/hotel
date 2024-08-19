@@ -33,17 +33,19 @@ async def create_booking_notification_template(
 
 
 async def create_booking_confirmation_link_template(booking_info: dict, token: str):
+    print(booking_info)
+
     email = EmailMessage()
     email["From"] = settings.SMTP_USER
     email["To"] = booking_info["user_email"]
-
+    
     if booking_info["action"] == ConfirmationAction.CREATE:
         email["Subject"] = "Подтверждение бронирования"
-        confirm_type = f"confirmation"
+        confirm_type = f"confirmations"
         string = "бронировали номер"
     else:
         email["Subject"] = "Подтверждение отмены бронирования"
-        confirm_type = f"delition_confirmation"
+        confirm_type = f"cancellation_confirmation"
         string = "отменяете бронирование номера"
 
     services = ""
