@@ -5,7 +5,7 @@ from app.users.auth import authenticate_user, create_access_token, get_password_
 from app.users.dao import UsersDAO
 from app.users.dependencies import get_current_user
 from app.users.models import Users
-from app.users.schemas import SUserAuth, SUserInfo
+from app.users.schemas import SToken, SUserAuth, SUserInfo
 
 
 router = APIRouter(
@@ -22,7 +22,7 @@ async def register_user(user_data: SUserAuth):
     await UsersDAO.add(email=user_data.email, hashed_password=hashed_password)
 
 
-@router.post("/login", status_code=200)
+@router.post("/login", status_code=200, response_model=SToken)
 async def login_user(
     response: Response, 
     user_data: SUserAuth
@@ -30,7 +30,7 @@ async def login_user(
     user = await authenticate_user(user_data.email, user_data.password)
     access_token = create_access_token({"sub": str(user.id)})
     response.set_cookie("booking_access_token", access_token, httponly=True)
-    return {"access_token": access_token}
+    return {"token": access_token}
 
 
 @router.post("/logout", status_code=204)

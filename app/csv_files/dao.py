@@ -1,6 +1,6 @@
 import json
 from pandas import DataFrame
-from sqlalchemy import insert, select
+from sqlalchemy import func, insert, select
 from app.database import engine
 from app.hotels.models import Hotels
 from app.database import async_session_maker
@@ -15,11 +15,13 @@ class SCV_filesDAO():
     ):
         async with async_session_maker() as session:
             for _, row in df.iterrows():
+                tsvector = func.to_tsvector('russian', row["location"])
                 services = row['services'].replace("'",'"')
                 services = json.loads(services)
                 hotel = {
                     "name": row['name'],
                     "location": row['location'],
+                    "tsvector": tsvector,
                     "services": services,
                     "room_quantity": row['room_quantity'],
                     "image_id": row['image_id']

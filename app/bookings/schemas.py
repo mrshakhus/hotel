@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -8,7 +9,7 @@ class SBooking(BaseModel):
     user_id: int = Field(..., gt=0)
     status: int
     created_at: datetime
-    cancelled_at: datetime
+    cancelled_at: Optional[datetime]
     date_from: date
     date_to: date
     price: int = Field(..., ge=0)

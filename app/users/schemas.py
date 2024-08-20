@@ -10,3 +10,7 @@ class SUserAuth(BaseModel):
 class SUserInfo(BaseModel):
     id: int = Field(..., gt=0)
     email: EmailStr
+
+
+class SToken(BaseModel):
+    token: str

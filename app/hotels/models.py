@@ -1,6 +1,7 @@
-from sqlalchemy import JSON, Column, Integer, String
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, Column, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
+from sqlalchemy.event import listens_for
 from app.database import Base
 
 class Hotels(Base):
@@ -9,6 +10,7 @@ class Hotels(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    tsvector = Column(TSVECTOR, nullable=False)
     services = Column(JSONB)
     room_quantity = Column(Integer, nullable=False)
     image_id = Column(Integer)
@@ -17,3 +19,13 @@ class Hotels(Base):
 
     def __str__(self) -> str:
         return f"{self.name}"
+    
+
+# @listens_for(Hotels, 'before_insert')
+# def generate_tsvector_before_insert(mapper, connection, target):
+#     target.tsvector = func.to_tsvector('russian', target.location)
+
+# @listens_for(Hotels, 'before_update')
+# def generate_tsvector_before_update(mapper, connection, target):
+#     target.tsvector = func.to_tsvector('russian', target.location)
+

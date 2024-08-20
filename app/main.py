@@ -57,10 +57,10 @@ app = FastAPI(
 app.include_router(users_router)
 app.include_router(hotels_router)
 app.include_router(bookings_router)
-app.include_router(pages_router)
+# app.include_router(pages_router)
 app.include_router(images_router)
 app.include_router(csv_files_router)
-app.include_router(prometheus_router)
+# app.include_router(prometheus_router)
 
 origins = [
     # 3000 - порт, на котором работает фронтенд на React.js 

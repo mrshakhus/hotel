@@ -68,7 +68,8 @@ class HotelDAO(BaseDAO):
                     )
                     .where(
                         and_(
-                            Hotels.location.like(f'%{location.strip()}%'),
+                            Hotels.tsvector.op('@@')(func.to_tsquery('russian', location)),
+                            # Hotels.location.like(f'%{location.strip()}%'),
                             Hotels.services.contains(cast(hotel_services, JSONB)) #Этот правильный!
                             # -6 часов чтобы понять
                         )

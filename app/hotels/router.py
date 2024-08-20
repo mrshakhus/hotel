@@ -6,6 +6,7 @@ from fastapi_cache.decorator import cache
 from fastapi import APIRouter, Query
 
 from app.hotels.dao import HotelDAO
+from app.hotels.dependencies import format_query
 from app.hotels.rooms.schemas import SRooms
 from app.hotels.schemas import SHotel, SHotels
 from app.tasks.dao import BookingTaskDAO
@@ -29,6 +30,7 @@ async def get_hotels(
     hotel_services: list[str] = Query([]),  
 ):
     validate_dates(date_from, date_to)
+    location = format_query(location)
     
     hotels = await HotelDAO.get_all_hotels(
         location, 
