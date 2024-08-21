@@ -78,3 +78,15 @@ class NoBookingToDeleteException(BookingException):
 class NoRightsException(BookingException):
     status_code=status.HTTP_403_FORBIDDEN
     detail="У вас нет прав на выполнение этого действия"
+
+class FavoriteHotelAlreadyExistsException(BookingException):
+    status_code=status.HTTP_409_CONFLICT
+    detail="Отель уже добавлен в избранные"
+
+class NoFavoriteHotelException(BookingException):
+    status_code=status.HTTP_404_NOT_FOUND
+    detail="Отель отсутствует в избранных"
+
+class RuntimeException(BookingException):
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    detail="Упс... Что-то пошло не так. Попробуйте позже"

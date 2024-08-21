@@ -16,6 +16,7 @@ class Hotels(Base):
     image_id = Column(Integer)
 
     room = relationship("Rooms", back_populates="hotel")
+    favorite_hotel = relationship("FavoriteHotels", back_populates="hotel")
 
     def __str__(self) -> str:
         return f"{self.name}"

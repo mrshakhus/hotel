@@ -18,6 +18,7 @@ from app.pages.router import router as pages_router
 from app.images.router import router as images_router
 from app.csv_files.router import router as csv_files_router
 from app.prometheus.router import router as prometheus_router
+from app.favorite_hotels.router import router as favorite_hotels_router
 from app.logger import logger
 from fastapi_versioning import VersionedFastAPI
 
@@ -57,9 +58,10 @@ app = FastAPI(
 app.include_router(users_router)
 app.include_router(hotels_router)
 app.include_router(bookings_router)
-# app.include_router(pages_router)
 app.include_router(images_router)
 app.include_router(csv_files_router)
+app.include_router(favorite_hotels_router)
+# app.include_router(pages_router)
 # app.include_router(prometheus_router)
 
 origins = [

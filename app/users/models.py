@@ -15,6 +15,7 @@ class Users(Base):
 
     booking = relationship("Bookings", back_populates="user")
     booking_confirmation = relationship("BookingConfirmations", back_populates="user")
+    favorite_hotel = relationship("FavoriteHotels", back_populates="user")
 
     def __str__(self) -> str:
         return f"Пользователь {self.email}"
