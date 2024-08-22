@@ -1,6 +1,7 @@
 from app.exceptions import FavoriteHotelAlreadyExistsException, NoFavoriteHotelException, NoHotelFoundException
 from app.favorite_hotels.dao import FavoriteHotelDAO
 from app.hotels.dao import HotelDAO
+from app.hotels.schemas import SHotel
 from app.utils.exception_handlers import handle_exception, handle_runtime_exception
  
 
@@ -9,7 +10,7 @@ class FavoriteHotelsService:
     async def add_hotel_to_favorites(
         user_id: int, 
         hotel_id: int
-    ):
+    ) -> None:
         try:
             hotel = await HotelDAO.find_one_or_none(id=hotel_id)
             if not hotel:
@@ -39,7 +40,9 @@ class FavoriteHotelsService:
     
 
     @staticmethod
-    async def delete_hotel_from_favorites(favorite_id: int):
+    async def delete_hotel_from_favorites(
+        favorite_id: int
+    ) -> None:
         try:
             favorite_hotel = await FavoriteHotelDAO.find_one_or_none(id=favorite_id)
             if not favorite_hotel:
@@ -61,9 +64,12 @@ class FavoriteHotelsService:
 
 
     @staticmethod
-    async def get_favorite_hotels(user_id: int):
+    async def get_favorite_hotels(
+        user_id: int
+    ) -> SHotel:
         try:
-            return await FavoriteHotelDAO.get_favorite_hotels(user_id)
+            hotels = await FavoriteHotelDAO.get_favorite_hotels(user_id)
+            return hotels
 
         except Exception as e:
             

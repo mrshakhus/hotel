@@ -160,7 +160,6 @@ class BookingDAO(BaseDAO):
                 "user_id": user_id, 
                 "booking_id": booking_id
             }
-            
             msg="Booking not found for deletion"
             handle_exception(e, NoBookingToDeleteException, extra, msg)
 
@@ -175,28 +174,13 @@ class BookingDAO(BaseDAO):
         try:
             async with async_session_maker() as session:
 
-                """
-                WITH booked_room AS(
-                    SELECT hotel_id, name, description, services 
-                    FROM rooms
-                    WHERE rooms.id = 1
-                ),
-                """
+                
                 booked_room = (
                     select(Rooms.hotel_id, Rooms.name, Rooms.description, Rooms.services)
                     .where(Rooms.id == room_id)
                 ).cte("booked_room")
 
-                """
-                booked_hotel AS(
-                    SELECT hotels.name
-                    AS "hotel_name"
-                    , hotels.location 
-                    FROM hotels
-                    JOIN booked_room
-                    ON hotels.id = booked_room.hotel_id
-                )
-                """
+                
                 booked_hotel = (
                     select(
                         Hotels.id.label("hotel_id"),
@@ -210,9 +194,7 @@ class BookingDAO(BaseDAO):
                     )
                 ).cte("booked_hotel")
 
-                """
-                SELECT * FROM booked_room, booked_hotel
-                """
+                
                 get_full_info = (
                     select(booked_room, booked_hotel.c.hotel_name, booked_hotel.c.location)
                     .select_from(booked_room)

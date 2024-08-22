@@ -35,6 +35,10 @@ class IncorrectEmailOrPasswordException(BookingException): #Можно удал�
     status_code=status.HTTP_401_UNAUTHORIZED
     detail="Неверная почта или пароль" 
 
+class AuthenticationRequiredException(BookingException):
+    status_code=status.HTTP_401_UNAUTHORIZED
+    detail="Вы должны быть аутентифицированы" 
+
 class RoomCanNotBeBooked(BookingException):
     status_code=status.HTTP_409_CONFLICT
     detail="Комната не может быть забронирована"

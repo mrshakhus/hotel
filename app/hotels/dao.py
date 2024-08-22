@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from app.bookings.models import Bookings
 from app.dao.base import BaseDAO
 from app.exceptions import NoHotelFoundException
+from app.favorite_hotels.models import FavoriteHotels
 from app.hotels.models import Hotels
 from app.database import async_session_maker
 from app.hotels.rooms.models import Rooms
@@ -24,18 +25,9 @@ class HotelDAO(BaseDAO):
         max_price: int, 
         hotel_services: list[str]
     ):
-        validate_dates(date_from, date_to)
-
         try:
             async with async_session_maker() as session:
-                """
-                WITH needed_rooms AS(
-                    SELECT id, hotel_id
-                    FROM rooms
-                    WHERE price > 100 
-                    AND price < 100000
-                ),
-                """ 
+                
                 needed_rooms = (
                     select(Rooms.id, Rooms.hotel_id)
                     .where(
@@ -46,20 +38,6 @@ class HotelDAO(BaseDAO):
                     )
                 ).cte("needed_rooms")
 
-                """ 
-                needed_hotels AS(
-                    SELECT DISTINCT hotels.id, hotels.room_quantity
-                    FROM hotels
-                    LEFT JOIN needed_rooms
-                    ON needed_rooms.hotel_id = hotels.id
-                    WHERE hotels.location LIKE '%Алтай%'
-                    AND (
-                        SELECT COUNT(DISTINCT service)
-                        FROM json_array_elements_text(hotels.services::json) AS service
-                        WHERE service IN ('Wi-Fi', 'Парковка')
-                    ) = 2
-                ),
-                """
                 needed_hotels = (
                     select(Hotels.id, Hotels.room_quantity).distinct()
                     .join(
@@ -69,21 +47,11 @@ class HotelDAO(BaseDAO):
                     .where(
                         and_(
                             Hotels.tsvector.op('@@')(func.to_tsquery('russian', location)),
-                            # Hotels.location.like(f'%{location.strip()}%'),
-                            Hotels.services.contains(cast(hotel_services, JSONB)) #Этот правильный!
-                            # -6 часов чтобы понять
+                            Hotels.services.contains(cast(hotel_services, JSONB))
                         )
                     )
                 ).cte("needed_hotels")
 
-                """
-                all_booked_rooms AS(
-                SELECT room_id
-                FROM bookings
-                WHERE (date_from >= '2023-05-15' AND date_from <= '2023-06-20') OR
-                    (date_from <= '2023-05-15' AND date_to > '2023-05-15')
-                ),
-                """
                 all_booked_rooms = (
                     select(Bookings.room_id).where(
                         or_(
@@ -96,36 +64,18 @@ class HotelDAO(BaseDAO):
                                 Bookings.date_to > date_from
                             )
                         )
-                    ).cte("all_booked_rooms")
-                )
+                    )
+                ).cte("all_booked_rooms")
 
-                """
-                needed_booked_rooms AS(
-                SELECT hotel_id
-                FROM rooms
-                INNER JOIN all_booked_rooms ON all_booked_rooms.room_id = rooms.id
-                )
-                """
                 needed_booked_rooms = (
                     select(Rooms.hotel_id)
                     .select_from(Rooms)
                     .join(
                         all_booked_rooms,
                         all_booked_rooms.c.room_id == Rooms.id
-                    ).cte("needed_booked_rooms")
-                )
+                    )
+                ).cte("needed_booked_rooms")
 
-                """
-                calc_needed_hotels AS(
-                SELECT needed_hotels.id, needed_hotels.room_quantity - COUNT(needed_booked_rooms.hotel_id)
-                AS rooms_left
-                FROM needed_hotels 
-                LEFT JOIN needed_booked_rooms 
-                ON needed_booked_rooms.hotel_id = needed_hotels.id
-                GROUP BY needed_hotels.room_quantity, needed_hotels.id
-                HAVING needed_hotels.room_quantity - COUNT(needed_booked_rooms.hotel_id) > 0
-                )
-                """
                 calc_needed_hotels = (
                     select(
                         needed_hotels.c.id,
@@ -142,12 +92,6 @@ class HotelDAO(BaseDAO):
                     .having((needed_hotels.c.room_quantity - func.count(needed_booked_rooms.c.hotel_id)) > 0)
                 ).cte("calc_needed_hotels")
 
-                """
-                SELECT * 
-                FROM hotels
-                INNER JOIN calc_needed_hotels
-                ON calc_needed_hotels.id = hotels.id
-                """
                 get_needed_hotels = (
                     select(Hotels, calc_needed_hotels.c.rooms_left)
                     .select_from(Hotels)
@@ -197,13 +141,7 @@ class HotelDAO(BaseDAO):
         validate_dates(date_from, date_to)
         try:
             async with async_session_maker() as session:
-                """
-                WITH needed_rooms AS(
-                    SELECT *
-                    FROM rooms
-                    WHERE hotel_id = 1
-                ),
-                """
+                
                 needed_rooms = (
                     select(Rooms)
                     .where(
@@ -214,13 +152,6 @@ class HotelDAO(BaseDAO):
                     )
                 ).cte("needed_rooms")
 
-                """
-                ext_needed_rooms AS(
-                    SELECT *, (DATE '2023-06-20' - DATE '2023-05-15')*needed_rooms.price 
-                    AS total_cost
-                    FROM needed_rooms
-                ),
-                """
                 ext_needed_rooms = (
                     select(
                         needed_rooms,
@@ -229,14 +160,6 @@ class HotelDAO(BaseDAO):
                     )
                 ).cte("ext_needed_rooms")
 
-                """
-                all_booked_rooms AS(
-                    SELECT room_id
-                    FROM bookings
-                    WHERE (date_from >= '2023-05-15' AND date_from <= '2023-06-20') OR
-                        (date_from <= '2023-05-15' AND date_to > '2023-05-15')
-                ),
-                """
                 all_booked_rooms = (
                     select(Bookings.room_id)
                     .where(
@@ -253,15 +176,6 @@ class HotelDAO(BaseDAO):
                     )
                 ).cte("all_booked_rooms")
 
-                """
-                booked_rooms AS(
-                    SELECT room_id
-                    FROM all_booked_rooms
-                    INNER JOIN rooms
-                    ON rooms.id = all_booked_rooms.room_id
-                    WHERE rooms.hotel_id = 1
-                ),
-                """
                 booked_rooms = (
                     select(all_booked_rooms.c.room_id)
                     .join(
@@ -271,20 +185,6 @@ class HotelDAO(BaseDAO):
                     .where(Rooms.hotel_id==hotel_id)
                 ).cte("booked_rooms")
 
-                """
-                rooms_left AS(
-                    SELECT ext_needed_rooms.id,
-                        CASE 
-                            WHEN COALESCE(booked_rooms.room_id, 0) = 0
-                            THEN ext_needed_rooms.quantity
-                            ELSE ext_needed_rooms.quantity - COALESCE(COUNT(booked_rooms.room_id), 0)
-                        END AS rooms_left
-                    FROM ext_needed_rooms
-                    LEFT JOIN booked_rooms
-                    ON booked_rooms.room_id = ext_needed_rooms.id
-                    GROUP BY ext_needed_rooms.id, ext_needed_rooms.quantity, booked_rooms.room_id
-                )
-                """
                 rooms_left = (
                     select(
                         ext_needed_rooms.c.id,
@@ -305,12 +205,6 @@ class HotelDAO(BaseDAO):
                     )
                 ).cte("rooms_left")
 
-                """
-                SELECT * 
-                FROM ext_needed_rooms
-                LEFT JOIN rooms_left
-                ON rooms_left.id = ext_needed_rooms.id
-                """
                 get_rooms = (
                     select(ext_needed_rooms)
                     .join(

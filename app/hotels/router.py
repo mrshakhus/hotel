@@ -1,17 +1,20 @@
 import asyncio
 from datetime import date, datetime, timezone
 import smtplib
-from fastapi.encoders import jsonable_encoder
 from fastapi_cache.decorator import cache
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from pydantic import Field
 
+from app.exceptions import AuthenticationRequiredException
 from app.hotels.dao import HotelDAO
-from app.hotels.dependencies import format_query
-from app.hotels.rooms.schemas import SRooms
-from app.hotels.schemas import SHotel, SHotels
+from app.hotels.rooms.schemas import SRoomsInfo
+from app.hotels.schemas import SHotel, SHotelSearchParams, SHotels
+from app.hotels.service import HotelsService
 from app.tasks.dao import BookingTaskDAO
 from app.tasks.email_templates import create_booking_notification_template
 from app.config import settings
+from app.users.dependencies import get_current_user
+from app.users.models import Users
 from app.utils.exception_handlers import validate_dates
 
 router = APIRouter(
@@ -22,17 +25,16 @@ router = APIRouter(
 @router.get("/{location}", status_code=200, response_model=list[SHotels])
 @cache(expire=30)
 async def get_hotels(
-    location: str, 
-    date_from: date, 
+    location: str,
+    date_from: date,
     date_to: date,
     min_price: int = Query(100, ge=0), 
     max_price: int = Query(100_000, ge=0),
-    hotel_services: list[str] = Query([]),  
+    hotel_services: list[str] = Query([])
 ):
     validate_dates(date_from, date_to)
-    location = format_query(location)
     
-    hotels = await HotelDAO.get_all_hotels(
+    hotels = await HotelsService.get_hotels(
         location, 
         date_from, 
         date_to,
@@ -44,7 +46,7 @@ async def get_hotels(
     return hotels
 
 
-@router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRooms]) 
+@router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRoomsInfo]) 
 async def get_rooms(
     hotel_id: int, 
     date_from: date, 

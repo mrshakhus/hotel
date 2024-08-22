@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-class SRooms(BaseModel):
+class SRoomsInfo(BaseModel):
     id: int = Field(..., gt=0)
     hotel_id: int = Field(..., gt=0)
     name: str
