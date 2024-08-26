@@ -1,5 +1,22 @@
 #BookingDAO
- #get_all_hotels
+    #add
+
+"""
+WITH booked_rooms AS(
+SELECT * FROM bookings
+WHERE room_id = 1 AND
+(date_from >= '2023-05-15' AND date_from <= '2023-06-20') OR
+(date_from <= '2023-05-15' AND date_to > '2023-05-15')
+)
+"""
+"""
+SELECT rooms.quantity - COUNT(booked_rooms.room_id) FROM rooms 
+LEFT JOIN booked_rooms ON booked_rooms.room_id = rooms.id
+WHERE rooms.id = 1
+GROUP BY rooms.quantity, booked_rooms.room_id
+"""
+
+    #get_all_hotels
 
 """
 WITH needed_rooms AS(

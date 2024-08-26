@@ -2,6 +2,8 @@ from datetime import date, datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.bookings.enums import BookingStatus
+
 
 class SBooking(BaseModel):
     id: int = Field(..., gt=0)
@@ -23,7 +25,7 @@ class SBookingConfirmation(BaseModel):
     id: int = Field(..., gt=0)
     user_id: int = Field(..., gt=0)
     booking_id: int = Field(..., gt=0)
-    action: int
+    action: BookingStatus = BookingStatus.ACTIVE
     token: str
     expires_at: datetime
     is_confirmed: bool

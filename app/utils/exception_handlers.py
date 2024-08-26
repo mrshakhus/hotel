@@ -1,6 +1,6 @@
 from datetime import date
-from typing import Dict
-from app.exceptions import InvalidDatesException, MoreThan30DaysException, RuntimeException, ServiceUnavailableException, UnexpectedErrorException
+from typing import Any, Dict
+from app.exceptions import InvalidDatesException, MoreThan30DaysException, UnexpectedError, ServiceUnavailableException
 from app.logger import logger
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 def handle_exception(
     exception: Exception,
     expecting_exception: Exception, 
-    extra: Dict[str, any], 
+    extra: dict[str, Any], 
     msg: str = ""
 ):
     if isinstance(exception, expecting_exception):
@@ -16,26 +16,22 @@ def handle_exception(
         raise exception
     
 
-def handle_runtime_exception(
+def handle_unexpected_exception(
     exception: Exception, 
-    extra: Dict[str, any]
+    extra: dict[str, Any]
 ):
     extra["exception"] = type(exception).__name__
     logger.error(msg="", extra=extra, exc_info=True)
-    raise RuntimeException
+    raise UnexpectedError
 
 
 def handle_db_exception(
     exception: Exception, 
-    extra: Dict[str, any]
+    extra: dict[str, Any]
 ):
     if isinstance(exception, SQLAlchemyError):
         logger.error(msg="", extra=extra, exc_info=True)
         raise ServiceUnavailableException
-    else:
-        extra["exception"] = type(exception).__name__
-        logger.error(msg="", extra=extra, exc_info=True)
-        raise UnexpectedErrorException
     
 
 def validate_dates(

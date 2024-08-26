@@ -1,8 +1,8 @@
-from app.exceptions import FavoriteHotelAlreadyExistsException, NoFavoriteHotelException, NoHotelFoundException
+from app.exceptions import BookingAPIException, FavoriteHotelAlreadyExistsException, NoFavoriteHotelException, NoHotelFoundException
 from app.favorite_hotels.dao import FavoriteHotelDAO
 from app.hotels.dao import HotelDAO
 from app.hotels.schemas import SHotel
-from app.utils.exception_handlers import handle_exception, handle_runtime_exception
+from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
  
 
 class FavoriteHotelsService:
@@ -25,6 +25,7 @@ class FavoriteHotelsService:
         except (
             NoHotelFoundException,
             FavoriteHotelAlreadyExistsException,
+            BookingAPIException,
             Exception,
         ) as e:
 
@@ -35,8 +36,8 @@ class FavoriteHotelsService:
 
             handle_exception(e, NoHotelFoundException, extra)
             handle_exception(e, FavoriteHotelAlreadyExistsException, extra)
-
-            handle_runtime_exception(e, extra)
+            handle_exception(e, BookingAPIException, extra)
+            handle_unexpected_exception(e, extra)
     
 
     @staticmethod
@@ -52,6 +53,7 @@ class FavoriteHotelsService:
         
         except (
             NoFavoriteHotelException,
+            BookingAPIException,
             Exception,
         ) as e:
             
@@ -60,7 +62,8 @@ class FavoriteHotelsService:
             }
 
             handle_exception(e, NoFavoriteHotelException, extra)
-            handle_runtime_exception(e, extra)
+            handle_exception(e, BookingAPIException, extra)
+            handle_unexpected_exception(e, extra)
 
 
     @staticmethod
