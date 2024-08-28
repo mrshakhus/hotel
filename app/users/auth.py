@@ -4,7 +4,7 @@ from pydantic import EmailStr
 from app.config import settings
 from jose import jwt
 
-from app.exceptions import UserIsNotPresentException
+from app.exceptions import IncorrectPasswordException, UserIsNotPresentException
 from app.users.dao import UsersDAO
 
 
@@ -27,8 +27,19 @@ def create_access_token(data: dict) -> str:
     )
     return encoded_jwt
 
-async def authenticate_user(email: EmailStr, password: str):
+async def authenticate_user(
+    email: EmailStr, 
+    password: str
+) -> dict:
     user = await UsersDAO.find_one_or_none(email=email)
-    if not (user and verify_password(password, user.hashed_password)):
+
+    if not user:
         raise UserIsNotPresentException
-    return user
+    if not verify_password(password, user["hashed_password"]):
+        raise IncorrectPasswordException
+    
+    user_info = dict()
+    user_info["id"] = user["id"]
+    user_info["email"] = user["email"]
+
+    return user_info

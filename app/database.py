@@ -5,11 +5,13 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from app.config import settings
 
 if settings.MODE == "TEST":
-    DATABASE_URL = settings.TEST_DATABASE_URL
-    DATABASE_PARAMS ={"poolclass": NullPool}
+    # DATABASE_URL = settings.TEST_DATABASE_URL
+    # DATABASE_PARAMS ={"poolclass": NullPool}
+    pass
 else:
     DATABASE_URL = settings.DATABASE_URL
     DATABASE_PARAMS ={}
+    print(settings.DATABASE_URL)
 
 engine = create_async_engine(DATABASE_URL, **DATABASE_PARAMS)
 

@@ -13,7 +13,7 @@ class FavoriteHotelDAO(BaseDAO):
     async def delete(
         cls,
         favorite_id: int
-    ):
+    ) -> None:
         try:
             async with async_session_maker() as session:
                 delete_favorite = (
@@ -40,7 +40,7 @@ class FavoriteHotelDAO(BaseDAO):
     async def get_favorite_hotels(
         cls,
         user_id: int
-    ):
+    ) -> list[dict]:
         try:
             async with async_session_maker() as session:
                 get_hotels = (

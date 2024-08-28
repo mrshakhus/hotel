@@ -31,9 +31,9 @@ class UserAlreadyExistsException(BookingAPIException):
     status_code=status.HTTP_409_CONFLICT
     detail="Пользователь уже существует"
 
-class IncorrectEmailOrPasswordException(BookingAPIException): #Можно удалить
+class IncorrectPasswordException(BookingAPIException): 
     status_code=status.HTTP_401_UNAUTHORIZED
-    detail="Неверная почта или пароль" 
+    detail="Введеный пароль неверный" 
 
 class AuthenticationRequiredException(BookingAPIException):
     status_code=status.HTTP_401_UNAUTHORIZED
@@ -90,3 +90,7 @@ class NoFavoriteHotelException(BookingAPIException):
 class UnexpectedError(BookingAPIException):
     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     detail="Произошла неожиданная ошибка. Попробуйте позже"
+
+class PasswordsDoNotMatchException(BookingAPIException):
+    status_code=status.HTTP_400_BAD_REQUEST
+    detail="Пароли не совпадают"

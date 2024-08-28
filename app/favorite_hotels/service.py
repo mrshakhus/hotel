@@ -1,7 +1,6 @@
 from app.exceptions import BookingAPIException, FavoriteHotelAlreadyExistsException, NoFavoriteHotelException, NoHotelFoundException
 from app.favorite_hotels.dao import FavoriteHotelDAO
 from app.hotels.dao import HotelDAO
-from app.hotels.schemas import SHotel
 from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
  
 
@@ -69,15 +68,19 @@ class FavoriteHotelsService:
     @staticmethod
     async def get_favorite_hotels(
         user_id: int
-    ) -> SHotel:
+    ) -> list[dict]:
         try:
             hotels = await FavoriteHotelDAO.get_favorite_hotels(user_id)
             return hotels
 
-        except Exception as e:
+        except (
+            BookingAPIException,
+            Exception 
+        ) as e:
             
             extra = { 
                 "user_id": user_id
             }
 
-            handle_runtime_exception(e, extra) 
+            handle_exception(e, BookingAPIException, extra)
+            handle_unexpected_exception(e, extra)

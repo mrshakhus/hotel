@@ -14,3 +14,8 @@ class SUserInfo(BaseModel):
 
 class SToken(BaseModel):
     token: str
+
+class SChangingPassword(BaseModel):
+    old_password: str
+    new_password_1: str
+    new_password_2: str

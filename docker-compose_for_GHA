@@ -1,0 +1,140 @@
+services: 
+  # nginx:
+  #   build:
+  #     context: .
+  #     dockerfile: "Dockerfile.nginx"
+  #   container_name: booking_nginx 
+  #   ports:
+  #     - 80:80
+  #     - 443:443  
+  #   links: 
+  #     - booking
+
+  test_db: 
+    image: postgres:16.3
+    container_name: test_booking_db
+    environment:
+      POSTGRES_DB: ${TEST_POSTGRES_DB}
+      POSTGRES_USER: ${TEST_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 20s
+      timeout: 5s 
+      retries: 10
+    restart: on-failure
+  
+  db: 
+    image: postgres:16.3
+    container_name: booking_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+    restart: on-failure
+    
+  redis:
+    image: redis:7
+    container_name: booking_redis
+
+  booking:
+    image: booking_image
+    build:
+      context: .
+    container_name: booking_app
+    command: ['/booking/docker/app.sh']
+    ports:
+      - "7777:8000"
+    environment:
+      MODE: ${MODE}
+      LOG_LEVEL: ${LOG_LEVEL}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      TEST_DB_HOST: ${TEST_DB_HOST}
+      TEST_DB_PORT: ${TEST_DB_PORT}
+      TEST_DB_USER: ${TEST_DB_USER}
+      TEST_DB_PASS: ${TEST_DB_PASS}
+      TEST_DB_NAME: ${TEST_DB_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+    depends_on:
+      db:
+        condition: service_healthy
+      test_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+
+  celery:
+    image: celery_image
+    build:
+      context: .
+    container_name: booking_celery
+    command: ['/booking/docker/celery.sh', 'celery']
+    depends_on:
+      - redis
+
+  celery_beat:
+    image: booking_celery
+    build:
+      context: .
+    container_name: booking_celery_beat
+    command: sh -c "celery --app=app.tasks.celery:celery worker -l INFO -B"
+    depends_on:
+      - redis
+
+  flower:
+    image: flower_image
+    build:
+      context: .
+    container_name: booking_flower
+    command: ['/booking/docker/celery.sh', 'flower']
+    depends_on:
+      - redis
+    # ports:
+    #   - "5555:5555"
+
+  # prometheus:
+  #   image: prom/prometheus:v2.43.0
+  #   container_name: prometheus
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheusdata:/prometheus
+  #   restart: unless-stopped
+  #   ports:
+  #     - 9090:9090
+
+  # grafana:
+  #   image: grafana/grafana:9.4.7
+  #   container_name: grafana
+  #   volumes:
+  #     - grafanadata:/var/lib/grafana
+  #   restart: unless-stopped
+  #   ports:
+  #     - 3000:3000
+
+volumes:
+  postgresdata:
+  # grafanadata:
+  # prometheusdata:

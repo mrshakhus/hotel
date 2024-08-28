@@ -1,10 +1,10 @@
 from datetime import date
 
 from app.bookings.dao import BookingConfirmationDAO, BookingDAO
-from app.bookings.dependencies import send_confirmation_email_with_link
 from app.bookings.enums import ConfirmationAction
 from app.bookings.schemas import SBooking
 from app.exceptions import BookingAPIException
+from app.tasks.tasks import send_confirmation_email_with_link
 from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
 
 
@@ -12,7 +12,7 @@ class BookingsService:
     @staticmethod
     async def get_bookings(
         user_id: int
-    ) -> list[SBooking]:
+    ) -> list[dict]:
         try:
             bookings = await BookingDAO.find_all(user_id=user_id)
             return bookings
@@ -50,7 +50,7 @@ class BookingsService:
             booking_info["date_to"] = date_to
             booking_info["action"] = ConfirmationAction.CREATE
 
-            await send_confirmation_email_with_link(booking_info, confirmation_token)
+            send_confirmation_email_with_link.delay(booking_info, confirmation_token)
             print(confirmation_token)
 
         except(
@@ -103,7 +103,7 @@ class BookingsService:
             booking_info["user_email"] = user["email"]
             booking_info["action"] = ConfirmationAction.CANCEL
 
-            await send_confirmation_email_with_link(booking_info, confirmation_token)
+            send_confirmation_email_with_link.delay(booking_info, confirmation_token)
             print(confirmation_token)
 
         except(

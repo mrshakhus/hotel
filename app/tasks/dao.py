@@ -1,76 +1,96 @@
 from datetime import date
 
-from sqlalchemy import DATE, func, select
+from sqlalchemy import select
 
-from app.users.models import Users
 from app.hotels.rooms.models import Rooms
 from app.hotels.models import Hotels
 from app.bookings.models import Bookings
 from app.database import async_session_maker
+from app.users.models import Users
 
 
 class BookingTaskDAO():
     @classmethod
     async def get_users_for_notification(
         cls,
-        date_from: date,
+        todays_date: date,
         days_before_check_in: int
-    ):
-        # Из бд надо достать бронирования
-        # посмотреть, у кого заезд завтра
-        # найдя такого пользователя, ему на почту отправить письмо
+    ) -> list[dict]:
         async with async_session_maker() as session:
-            """
-            WITH needed_bookings AS(
-                SELECT user_id, date_from
-                FROM bookings
-                WHERE(date_from - DATE '2030-06-05' = 1)
-            ),
-            """
             needed_bookings = (
-            select(Bookings.user_id, Bookings.date_from, Bookings.date_to)
-            .where(
-                (Bookings.date_from - date_from) == days_before_check_in
-            )
-        ).cte("needed_bookings")
-
-            """
-            users_to_inform AS(
-                SELECT user_id, users.email,
-                COUNT(needed_bookings.user_id)
-                FROM needed_bookings
-                LEFT JOIN users 
-                ON users.id = needed_bookings.user_id
-                GROUP BY needed_bookings.user_id, users.email
-            )
-
-            SELECT * FROM users_to_inform
-            """
-            users_to_inform = (
                 select(
-                    needed_bookings.c.user_id, 
-                    Users.email,
-                    func.count(needed_bookings.c.user_id)
-                    .label("room_quantity"),
-                    needed_bookings.c.date_from,
-                    needed_bookings.c.date_to
+                    Bookings.id.label("booking_id"),
+                    Bookings.user_id,
+                    Users.email.label("user_email"),
+                    Bookings.room_id, 
+                    Bookings.date_from, 
+                    Bookings.date_to
                 )
+                .select_from(Bookings)
                 .join(
                     Users,
-                    Users.id == needed_bookings.c.user_id,
-                    isouter=True
+                    Users.id == Bookings.user_id
                 )
-                .group_by(
-                    needed_bookings.c.user_id, 
-                    Users.email, 
+                .where(
+                    (Bookings.date_from - todays_date) == days_before_check_in
+                )
+            ).cte("needed_bookings")
+
+            booked_room = (
+                select(
+                    Rooms.id, 
+                    Rooms.hotel_id, 
+                    Rooms.name, 
+                    Rooms.description, 
+                    Rooms.services
+                )
+                .select_from(Rooms)
+                .join(
+                    needed_bookings,
+                    needed_bookings.c.room_id == Rooms.id
+                )
+            ).cte("booked_room")
+
+            booked_hotel = (
+                select(
+                    Hotels.id.label("hotel_id"),
+                    Hotels.name.label("hotel_name"),
+                    Hotels.location,
+                )
+                .select_from(Hotels)
+                .join(
+                    booked_room,
+                    Hotels.id == booked_room.c.hotel_id,
+                )
+            ).cte("booked_hotel")
+
+            get_full_info = (
+                select(
+                    booked_room.c.hotel_id, 
+                    booked_room.c.name,
+                    booked_room.c.description,
+                    booked_room.c.services,
+                    booked_hotel.c.hotel_name, 
+                    booked_hotel.c.location,
                     needed_bookings.c.date_from,
-                    needed_bookings.c.date_to
+                    needed_bookings.c.date_to,
+                    needed_bookings.c.booking_id,
+                    needed_bookings.c.user_id,
+                    needed_bookings.c.user_email
                 )
-            ).cte("users_to_inform")
+                .select_from(booked_room)
+                .join(
+                    booked_hotel,
+                    booked_hotel.c.hotel_id == booked_room.c.hotel_id
+                )
+                .join(
+                    needed_bookings,
+                    needed_bookings.c.room_id == booked_room.c.id
+                )
+                .distinct(needed_bookings.c.booking_id)
+            )
 
-            get_needed_users = select(users_to_inform)
-
-            result = await session.execute(get_needed_users)
-            users = result.mappings().all()
-        
-        return users
+            result = await session.execute(get_full_info)
+            full_info = result.mappings().all()
+            
+            return full_info

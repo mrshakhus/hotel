@@ -18,7 +18,6 @@ async def add_to_fovorites(
     user: Users = Depends(get_current_user)
 ):
     await FavoriteHotelsService.add_hotel_to_favorites(user["id"], hotel_id)
-
     return{"message": "Отель добавлен в избранные"}
 
 
@@ -35,7 +34,6 @@ async def get_fovorites(
     user: Users = Depends(get_current_user)
 ):
     hotels = await FavoriteHotelsService.get_favorite_hotels(user["id"])
-
     return hotels
 
 

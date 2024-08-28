@@ -1,4 +1,5 @@
 TODO.txt
+.env_for_GHA
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

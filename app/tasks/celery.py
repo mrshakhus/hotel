@@ -19,9 +19,9 @@ celery.conf.beat_schedule = {
         "schedule": 60
         # "schedule": crontab(minute="0", hour="9")
     },
-    # "notification_2": {
-    #     "task": "in_3_days_check_in",
-    #     "schedule": 10
-    #     # "schedule": crontab(minute="30", hour="15")
-    # }
+    "notification_2": {
+        "task": "in_3_days_check_in",
+        "schedule": 60
+        # "schedule": crontab(minute="30", hour="15")
+    }
 }

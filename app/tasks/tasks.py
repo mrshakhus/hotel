@@ -20,8 +20,8 @@ def process_pic(path: str):
 
 
 @celery.task
-def send_confirmation_email_with_link(email: str, token: str):
-    msg_content = create_booking_confirmation_link_template(email, token)
+def send_confirmation_email_with_link(booking_info: dict, token: str):
+    msg_content = create_booking_confirmation_link_template(booking_info, token)
 
     with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
         server.login(settings.SMTP_USER, settings.SMTP_PASS)

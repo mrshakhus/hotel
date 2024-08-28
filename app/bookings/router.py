@@ -57,7 +57,7 @@ async def inititate_booking_cancellation(
     return {"message": "Письмо с ссылкой для подтверждения отправлено"}
 
 
-@router.get("/cancellation_confirmation/{token}", status_code=200)
+@router.get("/cancellation_confirmations/{token}", status_code=200)
 @version(1)
 async def confirm_booking_cancellation(
     token: str,
