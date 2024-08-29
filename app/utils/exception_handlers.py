@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 def handle_exception(
     exception: Exception,
     expecting_exception: Exception, 
-    extra: dict[str, Any], 
+    extra: dict[str, Any] = None, 
     msg: str = ""
 ):
     if isinstance(exception, expecting_exception):
@@ -18,7 +18,7 @@ def handle_exception(
 
 def handle_unexpected_exception(
     exception: Exception, 
-    extra: dict[str, Any]
+    extra: dict[str, Any] = None
 ):
     extra["exception"] = type(exception).__name__
     logger.error(msg="", extra=extra, exc_info=True)

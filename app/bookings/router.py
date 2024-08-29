@@ -39,7 +39,7 @@ async def initiate_booking_request(
 
 @router.get("/confirmations/{token}", status_code=200)
 @version(1)
-async def confirm_booking_cancellation(
+async def confirm_booking(
     token: str,
     user: Users = Depends(get_current_user),
 ):

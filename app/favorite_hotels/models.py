@@ -9,5 +9,6 @@ class FavoriteHotels(Base):
     user_id = Column(ForeignKey("users.id"))
     hotel_id = Column(ForeignKey("hotels.id"))
 
-    user = relationship("Users", back_populates="favorite_hotel")
-    hotel = relationship("Hotels", back_populates="favorite_hotel")
+    # user = relationship("Users", back_populates="favorite_hotel")
+    # hotel = relationship("Hotels", back_populates="favorite_hotel")
+

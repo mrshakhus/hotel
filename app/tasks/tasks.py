@@ -2,14 +2,18 @@ from pathlib import Path
 import smtplib
 from app.config import settings
 
+from app.exceptions import BookingAPIException
 from app.tasks.celery import celery
 from PIL import Image
 
 from app.tasks.email_templates import create_booking_confirmation_link_template
+from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
 
 
 @celery.task
-def process_pic(path: str):
+def process_pic(
+     path: str
+):
     im_path = Path(path)
     im = Image.open(im_path)
 
@@ -20,9 +24,22 @@ def process_pic(path: str):
 
 
 @celery.task
-def send_confirmation_email_with_link(booking_info: dict, token: str):
-    msg_content = create_booking_confirmation_link_template(booking_info, token)
+def send_confirmation_email_with_link(
+    booking_info: dict, 
+    token: str
+) -> None:
+    try:
+        msg_content = create_booking_confirmation_link_template(booking_info, token)
 
-    with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        server.login(settings.SMTP_USER, settings.SMTP_PASS)
-        server.send_message(msg_content)
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.login(settings.SMTP_USER, settings.SMTP_PASS)
+            server.send_message(msg_content)
+    
+    except (
+        Exception
+    ) as e:
+        extra = {
+            "booking_info": booking_info,
+            "token": token
+        }
+        handle_unexpected_exception(e, extra)

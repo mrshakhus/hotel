@@ -94,7 +94,7 @@ def create_booking_confirmation_link_template(
                 <p><strong>Заселение:</strong> {booking_info["date_from"]}</p>
                 <p><strong>Выселение:</strong> {booking_info["date_to"]}</p>
                 <p style="text-align: center; margin-top: 20px;">
-                    <a href="http://127.0.0.1:7777/v1/bookings/{confirm_type}/{token}" 
+                    <a href="http://localhost:7777/v1/bookings/{confirm_type}/{token}" 
                        style="display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #4CAF50; text-decoration: none; border-radius: 5px;">
                        ПОДТВЕРДИТЬ
                     </a>

@@ -1,7 +1,6 @@
 from sqlalchemy import JSON, Column, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
-from sqlalchemy.event import listens_for
 from app.database import Base
 
 class Hotels(Base):
@@ -16,7 +15,7 @@ class Hotels(Base):
     image_id = Column(Integer)
 
     room = relationship("Rooms", back_populates="hotel")
-    favorite_hotel = relationship("FavoriteHotels", back_populates="hotel")
+    # favorite_hotel = relationship("FavoriteHotels", back_populates="hotel", lazy='dynamic')
 
     def __str__(self) -> str:
         return f"{self.name}"

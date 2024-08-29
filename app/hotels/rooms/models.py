@@ -20,3 +20,4 @@ class Rooms(Base):
 
     def __str__(self) -> str:
         return f"{self.description}"
+

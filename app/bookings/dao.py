@@ -375,8 +375,6 @@ class BookingConfirmationDAO(BaseDAO):
             
         except (
             SQLAlchemyError,
-            IncorrectTokenFortmatException,
-            TokenExpiredException,
             ActionAlreadyConfirmedException,
             Exception
         ) as e:
@@ -384,9 +382,7 @@ class BookingConfirmationDAO(BaseDAO):
             extra = {
                 "token": token
             }
-
-            handle_exception(e, IncorrectTokenFortmatException, extra, msg="Token isn't found")
-            handle_exception(e, TokenExpiredException, extra)
+            
             handle_exception(e, ActionAlreadyConfirmedException, extra)
             handle_db_exception(e, extra)
             handle_unexpected_exception(e, extra)
@@ -413,6 +409,7 @@ class BookingConfirmationDAO(BaseDAO):
 
                     if confirmation.is_expired():
                         raise TokenExpiredException
+                    logger.info(msg=f"{confirmation}", exc_info=True)
                     raise IncorrectTokenFortmatException
                 
                 if action.value == ConfirmationAction.CANCEL:
@@ -420,7 +417,7 @@ class BookingConfirmationDAO(BaseDAO):
                     booking.status = BookingStatus.CANCELLED
                     await session.commit()
 
-                # return booking
+                # return booking /booking_db booking_redis
         
         except (
             SQLAlchemyError, 
