@@ -1,10 +1,15 @@
 from datetime import date
 
+from fastapi_cache import FastAPICache
+
+from app.logger import logger
 from app.bookings.dao import BookingConfirmationDAO, BookingDAO
-from app.bookings.enums import ConfirmationAction
+from app.bookings.dependencies import get_cache, set_cache
+from app.bookings.enums import BookingAction
 from app.bookings.schemas import SBooking
+from celery.result import AsyncResult
 from app.exceptions import BookingAPIException
-from app.tasks.tasks import send_confirmation_email_with_link
+from app.tasks.tasks import send_confirmation_email_with_link, set_booking_status_expired
 from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
 
 
@@ -41,17 +46,26 @@ class BookingsService:
             booking_info = await BookingDAO.get_full_info_by_room_id(room_id)
             booking = await BookingDAO.add(user["id"], room_id, date_from, date_to)
             confirmation_token = await BookingConfirmationDAO.create(
-                user["id"], booking["id"],  ConfirmationAction.CREATE
+                user["id"], booking["id"],  BookingAction.CONFIRM
             )
 
             booking_info["booking_id"] = booking["id"]
             booking_info["user_email"] = user["email"]
             booking_info["date_from"] = date_from
             booking_info["date_to"] = date_to
-            booking_info["action"] = ConfirmationAction.CREATE
+            booking_info["action"] = BookingAction.CONFIRM
 
             send_confirmation_email_with_link.delay(booking_info, confirmation_token)
             print(confirmation_token)
+
+            expire_task = set_booking_status_expired.apply_async(
+                (booking["id"],), countdown=60)
+            logger.info(msg="TASK CREATED")
+
+            cache_key = f"celery_task:details:{user["email"]}"
+            print(cache_key)
+            await set_cache(cache_key, expire_task.id, expire=60)
+            logger.info(msg="CACHE SETTED")
 
         except(
             BookingAPIException,
@@ -71,10 +85,25 @@ class BookingsService:
 
     @staticmethod
     async def confirm_booking(
-        token: str
+        token: str,
+        user: dict
     ) -> None:
         try:
-            await BookingConfirmationDAO.confirm(token)
+            confirmation = await BookingConfirmationDAO.confirm(token)
+
+            await BookingConfirmationDAO.set_booking_status(
+                confirmation, 
+                BookingAction.CONFIRM
+            )
+
+            cache_key = f"celery_task:details:{user["email"]}"
+            task_id = await get_cache(cache_key)
+            await FastAPICache.clear(key=cache_key)
+            logger.info(msg="CACHE CLEARED")
+            
+            expire_task = AsyncResult(task_id)
+            expire_task.revoke(terminate=True)
+            logger.info(msg="TASK TERMINATED")
         
         except(
             BookingAPIException,
@@ -82,7 +111,8 @@ class BookingsService:
         ) as e:
             
             extra = {
-                "token": token
+                "token": token,
+                "user": user
             }
 
             handle_exception(e, BookingAPIException, extra)
@@ -98,10 +128,10 @@ class BookingsService:
         try:
             booking_info = await BookingDAO.get_full_info_by_booking_id(booking_id)
             confirmation_token = await BookingConfirmationDAO.create(
-                user["id"], booking_id, ConfirmationAction.CANCEL)
+                user["id"], booking_id, BookingAction.CANCEL)
 
             booking_info["user_email"] = user["email"]
-            booking_info["action"] = ConfirmationAction.CANCEL
+            booking_info["action"] = BookingAction.CANCEL
 
             send_confirmation_email_with_link.delay(booking_info, confirmation_token)
             print(confirmation_token)
@@ -129,7 +159,7 @@ class BookingsService:
 
             await BookingConfirmationDAO.set_booking_status(
                 confirmation, 
-                ConfirmationAction.CANCEL
+                BookingAction.CANCEL
             )
 
         except(

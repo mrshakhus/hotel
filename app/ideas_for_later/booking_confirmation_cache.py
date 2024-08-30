@@ -5,7 +5,7 @@ from fastapi_cache import FastAPICache
 from fastapi_versioning import version
 
 from app.bookings.dao import BookingConfirmationDAO, BookingDAO
-from app.bookings.enums import ConfirmationAction
+from app.bookings.enums import BookingAction
 from app.exceptions import CacheDataExpiredException
 from app.bookings.dependencies import get_cache, send_confirmation_email_with_link, set_cache
 from app.users.dependencies import get_current_user
@@ -31,7 +31,7 @@ async def initiate_booking_request(
     booking_info["date_from"] = date_from
     booking_info["date_to"] = date_to
 
-    confirmation_token = await BookingConfirmationDAO.create(user["id"], ConfirmationAction.CREATE)
+    confirmation_token = await BookingConfirmationDAO.create(user["id"], BookingAction.CONFIRM)
     await send_confirmation_email_with_link(booking_info, confirmation_token)
     print(confirmation_token)
 

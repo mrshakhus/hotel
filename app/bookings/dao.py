@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import and_, delete, func, insert, or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from app.bookings.enums import BookingStatus, ConfirmationAction
+from app.bookings.enums import BookingStatus, BookingAction
 from app.bookings.models import Bookings, BookingConfirmations
 from app.dao.base import BaseDAO
 from app.utils.exception_handlers import handle_db_exception, handle_exception, handle_unexpected_exception, validate_dates
@@ -308,7 +308,7 @@ class BookingConfirmationDAO(BaseDAO):
         cls, 
         user_id: int,
         booking_id: int,
-        action: ConfirmationAction
+        action: BookingAction
     ) -> str:
         try:
             token = secrets.token_urlsafe()
@@ -353,7 +353,7 @@ class BookingConfirmationDAO(BaseDAO):
     async def confirm(
         cls, 
         token: str
-    ) -> None:
+    ) -> dict[str, Any]:
         try:
             async with async_session_maker() as session:
                 get_confirmation = (
@@ -371,7 +371,7 @@ class BookingConfirmationDAO(BaseDAO):
 
                 confirmation.is_confirmed = True
                 await session.commit()
-                # return confirmation
+                return confirmation
             
         except (
             SQLAlchemyError,
@@ -392,7 +392,7 @@ class BookingConfirmationDAO(BaseDAO):
     async def set_booking_status(
         cls, 
         confirmation: BookingConfirmations,
-        action: ConfirmationAction,
+        action: BookingAction,
     ) -> None:
         try:
             async with async_session_maker() as session:
@@ -409,10 +409,13 @@ class BookingConfirmationDAO(BaseDAO):
 
                     if confirmation.is_expired():
                         raise TokenExpiredException
-                    logger.info(msg=f"{confirmation}", exc_info=True)
                     raise IncorrectTokenFortmatException
                 
-                if action.value == ConfirmationAction.CANCEL:
+                if action.value == BookingAction.CONFIRM:
+                    booking.status = BookingStatus.ACTIVE
+                    await session.commit()
+                
+                if action.value == BookingAction.CANCEL:
                     booking.cancelled_at = datetime.now(timezone.utc).replace(tzinfo=None)
                     booking.status = BookingStatus.CANCELLED
                     await session.commit()

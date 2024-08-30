@@ -38,6 +38,7 @@ services:
     image: celery_image
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: booking_celery
     command: ['/booking/docker/celery.sh', 'celery']
     depends_on:
@@ -47,6 +48,7 @@ services:
     image: booking_celery
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: booking_celery_beat
     command: sh -c "celery --app=app.tasks.celery:celery worker -l INFO -B"
     depends_on:
@@ -56,8 +58,11 @@ services:
     image: flower_image
     build:
       context: .
+      dockerfile: Dockerfile
     container_name: booking_flower
     command: ['/booking/docker/celery.sh', 'flower']
+    ports:
+      - "5555:5555"
     depends_on:
       - redis
 

@@ -1,5 +1,5 @@
 from email.message import EmailMessage
-from app.bookings.enums import ConfirmationAction
+from app.bookings.enums import BookingAction
 from app.config import settings
 
 
@@ -65,7 +65,7 @@ def create_booking_confirmation_link_template(
     email["From"] = settings.SMTP_USER
     email["To"] = booking_info["user_email"]
     
-    if booking_info["action"] == ConfirmationAction.CREATE:
+    if booking_info["action"] == BookingAction.CONFIRM:
         email["Subject"] = "Подтверждение бронирования"
         confirm_type = f"confirmations"
         action = "Подтвердите бронирование номера"

@@ -1,7 +1,8 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.exc import SQLAlchemyError
+from app.bookings.enums import BookingStatus
 from app.hotels.rooms.models import Rooms
 from app.hotels.models import Hotels
 from app.bookings.models import Bookings
@@ -34,7 +35,10 @@ class BookingTaskDAO():
                         Users.id == Bookings.user_id
                     )
                     .where(
-                        (Bookings.date_from - todays_date) == days_before_check_in
+                        and_(
+                            (Bookings.date_from - todays_date) == days_before_check_in,
+                            Bookings.status == BookingStatus.ACTIVE
+                        )
                     )
                 ).cte("needed_bookings")
 
@@ -105,6 +109,36 @@ class BookingTaskDAO():
             extra = {
                 "todays_date": todays_date, 
                 "days_before_check_in": days_before_check_in
+            }
+
+            handle_db_exception(e, extra)
+            handle_unexpected_exception(e, extra)
+
+
+    @classmethod
+    async def set_booking_status_expired(
+        cls,
+        booking_id: int
+    ) -> None:
+        try:
+            async with async_session_maker() as session:
+                get_booking = (
+                    select(Bookings)
+                    .where(Bookings.id == booking_id)
+                )
+                result = await session.execute(get_booking)
+                booking = result.scalars().one()
+
+                booking.status = BookingStatus.EXPIRED
+                await session.commit()
+
+        except (
+            SQLAlchemyError, 
+            Exception
+        ) as e:
+            
+            extra = {
+                "booking_id": booking_id
             }
 
             handle_db_exception(e, extra)

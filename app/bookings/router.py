@@ -43,7 +43,7 @@ async def confirm_booking(
     token: str,
     user: Users = Depends(get_current_user),
 ):
-    await BookingsService.confirm_booking(token)
+    await BookingsService.confirm_booking(token, user)
     return {"message": "Бронирование успешно подтверждено"}
 
 

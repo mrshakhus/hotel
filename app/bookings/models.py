@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Computed, Date, DateTime, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship
-from app.bookings.enums import BookingStatus, ConfirmationAction
+from app.bookings.enums import BookingStatus, BookingAction
 from app.database import Base
 
 class Bookings(Base):
@@ -10,7 +10,7 @@ class Bookings(Base):
     id = Column(Integer, primary_key=True)
     room_id = Column(ForeignKey("rooms.id"))
     user_id = Column(ForeignKey("users.id"))
-    status = Column(Integer, nullable=False, default=BookingStatus.ACTIVE)
+    status = Column(Integer, nullable=False, default=BookingStatus.PENDING)
     created_at = Column(DateTime, nullable=False,  default=datetime.now(timezone.utc).replace(tzinfo=None))
     cancelled_at = Column(DateTime)
     date_from = Column(Date, nullable=False)
@@ -33,7 +33,7 @@ class BookingConfirmations(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     booking_id = Column(Integer, ForeignKey('bookings.id'), nullable=False)
-    action = Column(Integer, nullable=False, default=ConfirmationAction.CREATE)
+    action = Column(Integer, nullable=False, default=BookingAction.CONFIRM)
     token = Column(String, unique=True)
     expires_at = Column(DateTime, nullable=False)
     is_confirmed = Column(Boolean, default=False)
