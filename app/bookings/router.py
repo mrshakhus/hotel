@@ -1,8 +1,9 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi_versioning import version
 
+from app.limiter import limiter
 from app.bookings.dao import BookingDAO
 from app.bookings.schemas import SBooking, SBookingFullInfo
 from app.bookings.service import BookingsService
@@ -18,7 +19,9 @@ router = APIRouter(
 
 @router.get("", status_code=200, response_model=list[SBooking])
 @version(1)
+@limiter.limit("1/second")
 async def get_bookings(
+    request: Request,
     user: Users = Depends(get_current_user)
 ):
     bookings = await BookingsService.get_bookings(user["id"])
@@ -27,7 +30,9 @@ async def get_bookings(
 
 @router.post("", status_code=201)
 @version(1)
+@limiter.limit("1/second")
 async def initiate_booking_request(
+    request: Request,
     room_id: int,
     date_from: date,
     date_to: date,
@@ -39,7 +44,9 @@ async def initiate_booking_request(
 
 @router.get("/confirmations/{token}", status_code=200)
 @version(1)
+@limiter.limit("1/second")
 async def confirm_booking(
+    request: Request,
     token: str,
     user: Users = Depends(get_current_user),
 ):
@@ -49,7 +56,9 @@ async def confirm_booking(
 
 @router.delete("/{booking_id}", status_code=201)
 @version(1)
+@limiter.limit("1/second")
 async def inititate_booking_cancellation(
+    request: Request,
     booking_id: int, 
     user: Users = Depends(get_current_user)
 ):
@@ -59,7 +68,9 @@ async def inititate_booking_cancellation(
 
 @router.get("/cancellation_confirmations/{token}", status_code=200)
 @version(1)
+@limiter.limit("1/second")
 async def confirm_booking_cancellation(
+    request: Request,
     token: str,
     user: Users = Depends(get_current_user),
 ):
@@ -70,7 +81,9 @@ async def confirm_booking_cancellation(
 #Для теста
 @router.post("/test", status_code=200, response_model=SBookingFullInfo)
 @version(1)
+@limiter.limit("1/second")
 async def test_booking_info(
+    request: Request,
     room_id: int
 ):
     booking_info = await BookingDAO.get_full_info_by_room_id(room_id)

@@ -2,8 +2,10 @@ import asyncio
 from datetime import date, datetime, timezone
 import smtplib
 from fastapi_cache.decorator import cache
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi_versioning import version
 from pydantic import Field
+from app.limiter import limiter
 
 from app.exceptions import AuthenticationRequiredException
 from app.hotels.dao import HotelDAO
@@ -23,8 +25,11 @@ router = APIRouter(
 )
 
 @router.get("/{location}", status_code=200, response_model=list[SHotels])
+@version(1)
 @cache(expire=30)
+@limiter.limit("1/second")
 async def get_hotels(
+    request: Request,
     location: str,
     date_from: date,
     date_to: date,
@@ -46,8 +51,11 @@ async def get_hotels(
     return hotels
 
 
-@router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRoomsInfo]) 
+@router.get("/{hotel_id}/rooms", status_code=200, response_model=list[SRoomsInfo])
+@version(1)
+@limiter.limit("1/second") 
 async def get_rooms(
+    request: Request,
     hotel_id: int, 
     date_from: date, 
     date_to: date,
@@ -67,16 +75,22 @@ async def get_rooms(
 
 
 @router.get("/id/{hotel_id}", status_code=200, response_model=SHotel)
+@version(1)
+@limiter.limit("1/second")
 async def get_hotel(
+    request: Request,
     hotel_id: int
 ):
     hotel = await HotelDAO.get_hotel(hotel_id)
     return hotel
 
-
 # for testing:
 @router.get("")
-async def send_notification_1_day_email():
+@version(1)
+@limiter.limit("1/second")
+async def send_notification_1_day_email(
+    request: Request
+):
     """
     Таска будет напоминать о бронировании тем пользователям, у кого на завтра запланирован заезд в отель. Таска/функция должна выполняться каждый день в 9 утра (задайте через crontab)
     """

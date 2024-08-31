@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
 import uvicorn
+from app import limiter
 from app.admin.views import BookingsAdmin, HotelsAdmin, RoomsAdmin, UsersAdmin
 from app.admin.auth import authentication_backend
 from app.config import settings
@@ -21,6 +22,9 @@ from app.prometheus.router import router as prometheus_router
 from app.favorite_hotels.router import router as favorite_hotels_router
 from app.logger import logger
 from fastapi_versioning import VersionedFastAPI
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -54,6 +58,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# app.state.limiter = limiter
+
 
 app.include_router(users_router)
 app.include_router(hotels_router)
@@ -77,6 +83,8 @@ app.add_middleware(
     allow_headers=["Content-Type", "Set-Cookie", "Access-Control-Allow-Headers", 
                    "Access-Control-Allow-Origin", "Authorization"],
 )
+app.add_middleware(SlowAPIMiddleware, limiter=limiter)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 # @app.middleware("http")

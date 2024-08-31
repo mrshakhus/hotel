@@ -11,7 +11,6 @@ if settings.MODE == "TEST":
 else:
     DATABASE_URL = settings.DATABASE_URL
     DATABASE_PARAMS ={}
-    print(settings.DATABASE_URL)
 
 engine = create_async_engine(DATABASE_URL, **DATABASE_PARAMS)
 
