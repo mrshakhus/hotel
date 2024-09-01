@@ -1,12 +1,9 @@
 from contextlib import asynccontextmanager
 import sentry_sdk
-from prometheus_fastapi_instrumentator import Instrumentator
-from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
-import uvicorn
 from app import limiter
 from app.admin.views import BookingsAdmin, HotelsAdmin, RoomsAdmin, UsersAdmin
 from app.admin.auth import authentication_backend
@@ -15,10 +12,7 @@ from app.database import engine
 from app.bookings.router import router as bookings_router
 from app.users.router import router as users_router
 from app.hotels.router import router as hotels_router
-from app.pages.router import router as pages_router
-from app.images.router import router as images_router
 from app.csv_files.router import router as csv_files_router
-from app.prometheus.router import router as prometheus_router
 from app.favorite_hotels.router import router as favorite_hotels_router
 from app.logger import logger
 from fastapi_versioning import VersionedFastAPI
@@ -53,22 +47,18 @@ async def lifespan(app: FastAPI):
     finally:
         await redis.close()
 
+
 app = FastAPI(
     title="Бронирование Отелей",
     lifespan=lifespan
 )
 
-# app.state.limiter = limiter
-
 
 app.include_router(users_router)
 app.include_router(hotels_router)
 app.include_router(bookings_router)
-app.include_router(images_router)
 app.include_router(csv_files_router)
 app.include_router(favorite_hotels_router)
-# app.include_router(pages_router)
-# app.include_router(prometheus_router)
 
 origins = [
     # 3000 - порт, на котором работает фронтенд на React.js 
@@ -87,34 +77,12 @@ app.add_middleware(SlowAPIMiddleware, limiter=limiter)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# @app.middleware("http")
-# async def add_process_time_header(request: Request, call_next):
-#     start_time = time.time()
-#     response = await call_next(request)
-#     process_time = time.time() - start_time
-#     logger.info("Request handling time", extra={
-#         "process_time": round(process_time, 4)
-#     })
-#     response.headers["X-Process-Time"] = str(process_time)
-#     return response
-
-
 app = VersionedFastAPI(app,
     version_format='{major}',
     prefix_format='/v{major}',
     description='Greet users with a nice message',
-    # middleware=[
-    #     Middleware(SessionMiddleware, secret_key='mysecretkey')
-    # ]
     lifespan=lifespan
 )
-
-
-instrumentator = Instrumentator(
-    should_group_status_codes=False,
-    excluded_handlers=[".*admin.*", "/metrics"],
-)
-instrumentator.instrument(app).expose(app)
 
 
 admin = Admin(app, engine, authentication_backend=authentication_backend)
