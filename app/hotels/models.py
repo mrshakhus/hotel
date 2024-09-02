@@ -2,6 +2,7 @@ from sqlalchemy import JSON, Column, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.favorite_hotels.models import FavoriteHotels 
 
 class Hotels(Base):
     __tablename__ = "hotels"
@@ -15,11 +16,10 @@ class Hotels(Base):
     image_id = Column(Integer)
 
     room = relationship("Rooms", back_populates="hotel")
-    # favorite_hotel = relationship("FavoriteHotels", back_populates="hotel", lazy='dynamic')
+    favorite_hotel = relationship("FavoriteHotels", back_populates="hotel")
 
     def __str__(self) -> str:
         return f"{self.name}"
-    
 
 # @listens_for(Hotels, 'before_insert')
 # def generate_tsvector_before_insert(mapper, connection, target):

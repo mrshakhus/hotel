@@ -1,4 +1,5 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+import smtplib
 
 from fastapi import APIRouter, Depends, Request
 from fastapi_versioning import version
@@ -8,8 +9,11 @@ from app.bookings.dao import BookingDAO
 from app.bookings.schemas import SBooking, SBookingFullInfo
 from app.bookings.service import BookingsService
 from app.bookings.dependencies import get_cache, send_confirmation_email_with_link, set_cache
+from app.tasks.dao import BookingTaskDAO
+from app.tasks.email_templates import create_booking_notification_template
 from app.users.dependencies import get_current_user
 from app.users.models import Users
+from app.config import settings
 
 router = APIRouter(
     prefix="/bookings",
@@ -90,3 +94,51 @@ async def test_booking_info(
     print(booking_info)
 
     return booking_info
+
+
+# # for testing:
+# @router.get("")
+# @version(1)
+# @limiter.limit("1/second")
+# async def send_notification_1_and_3_day_email(
+#     request: Request
+# ):
+#     days_before_check_in = 1
+#     todays_date = datetime.now(timezone.utc).date()
+#     users = await BookingTaskDAO.get_users_for_notification(todays_date, days_before_check_in)
+
+#     if not users:
+#         print("NO USERS FOUND FOR NOTIFICATION")
+#         return
+    
+#     for user in users:
+#         msg_content = create_booking_notification_template(user, days_before_check_in)
+
+#         with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+#             server.login(settings.SMTP_USER, settings.SMTP_PASS)
+#             server.send_message(msg_content)
+
+    
+#     days_before_check_in = 3
+#     users = await BookingTaskDAO.get_users_for_notification(todays_date, days_before_check_in)
+
+#     if not users:
+#         print("NO USERS FOUND FOR NOTIFICATION")
+#         return
+    
+#     for user in users:
+#         msg_content = create_booking_notification_template(user, days_before_check_in)
+
+#         with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+#             server.login(settings.SMTP_USER, settings.SMTP_PASS)
+#             server.send_message(msg_content)
+
+
+# # for testing:
+# @router.get("")
+# @version(1)
+# @limiter.limit("1/second")
+# async def send_notification_1_and_3_day_email(
+#     request: Request
+# ):
+#     pass

@@ -41,12 +41,10 @@ async def send_notification_email(
 @celery.task(name="tomorrow_check_in")
 def check_in_tomorrow() -> None:
     try:
-        print("AWAITING T")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(
             send_notification_email(1)
         )
-        print("DONE T")
 
     except (
         BookingAPIException,
@@ -58,14 +56,11 @@ def check_in_tomorrow() -> None:
 
 @celery.task(name="in_3_days_check_in")
 def check_in_in_3_days() -> None:
-    #15:30
     try:
-        print("AWAITING 3")
         loop = asyncio.get_event_loop()
         loop.run_until_complete(
             send_notification_email(3)
         )
-        print("DONE 3")
         
     except (
         BookingAPIException,

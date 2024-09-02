@@ -1,22 +1,13 @@
-import asyncio
-from datetime import date, datetime, timezone
-import smtplib
+from datetime import date
 from fastapi_cache.decorator import cache
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi_versioning import version
-from pydantic import Field
 from app.limiter import limiter
 
-from app.exceptions import AuthenticationRequiredException
 from app.hotels.dao import HotelDAO
 from app.hotels.rooms.schemas import SRoomsInfo
-from app.hotels.schemas import SHotel, SHotelSearchParams, SHotels
+from app.hotels.schemas import SHotel, SHotels
 from app.hotels.service import HotelsService
-from app.tasks.dao import BookingTaskDAO
-from app.tasks.email_templates import create_booking_notification_template
-from app.config import settings
-from app.users.dependencies import get_current_user
-from app.users.models import Users
 from app.utils.exception_handlers import validate_dates
 
 router = APIRouter(
@@ -83,29 +74,3 @@ async def get_hotel(
 ):
     hotel = await HotelDAO.get_hotel(hotel_id)
     return hotel
-
-# for testing:
-@router.get("")
-@version(1)
-@limiter.limit("1/second")
-async def send_notification_1_day_email(
-    request: Request
-):
-    """
-    Таска будет напоминать о бронировании тем пользователям, у кого на завтра запланирован заезд в отель. Таска/функция должна выполняться каждый день в 9 утра (задайте через crontab)
-    """
-    DAYS_BEFORE = 1
-    todays_date = datetime.now(timezone.utc).date() #get_day_before_users(todays_date)
-    users = await BookingTaskDAO.get_users_for_notification(todays_date, DAYS_BEFORE)
-    c = 0
-    for user in users:
-        c = c + 1
-        print("\n",c)
-        print(user)
-        msg_content = create_booking_notification_template(user, DAYS_BEFORE)
-
-        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.login(settings.SMTP_USER, settings.SMTP_PASS)
-            server.send_message(msg_content)
-
-        # break

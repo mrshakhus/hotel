@@ -1,28 +1,13 @@
 import asyncio
-from pathlib import Path
 import smtplib
 from app.config import settings
 
 from app.exceptions import BookingAPIException
 from app.tasks.celery import celery
-from PIL import Image
 
 from app.tasks.dao import BookingTaskDAO
 from app.tasks.email_templates import create_booking_confirmation_link_template
 from app.utils.exception_handlers import handle_exception, handle_unexpected_exception
-
-
-@celery.task
-def process_pic(
-     path: str
-):
-    im_path = Path(path)
-    im = Image.open(im_path)
-
-    im_resized_1000_500 = im.resize((1000, 500))
-    im_resized_200_100 = im.resize((200, 100))
-    im_resized_1000_500.save(f"app/static/images/resized_1000_500_{im_path.name}")
-    im_resized_200_100.save(f"app/static/images/resized_200_100_{im_path.name}")
 
 
 @celery.task
@@ -49,7 +34,7 @@ def send_confirmation_email_with_link(
 
 async def set_status_expired(
     booking_id: int  
-):
+) -> None:
     try:
         await BookingTaskDAO.set_booking_status_expired(booking_id)
 
@@ -69,11 +54,6 @@ def set_booking_status_expired(
     booking_id: int
 ) -> None:
     try:
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(
-        #     set_status_expired(booking_id)
-        # )
-
         loop = asyncio.get_event_loop()
         if loop.is_running():
             print("RUNNING")

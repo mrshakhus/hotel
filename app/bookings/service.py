@@ -59,12 +59,12 @@ class BookingsService:
             print(confirmation_token)
 
             expire_task = set_booking_status_expired.apply_async(
-                (booking["id"],), countdown=60)
+                (booking["id"],), countdown=900)
             logger.info(msg="TASK CREATED")
 
             cache_key = f"celery_task:details:{user["email"]}"
             print(cache_key)
-            await set_cache(cache_key, expire_task.id, expire=60)
+            await set_cache(cache_key, expire_task.id, expire=900)
             logger.info(msg="CACHE SETTED")
 
         except(
