@@ -17,7 +17,7 @@ class UsersService:
                 raise UserAlreadyExistsException
             
             hashed_password = get_password_hash(password)
-            await UsersDAO.add(email=email, hashed_password=hashed_password)
+            await UsersDAO.add_booking(email=email, hashed_password=hashed_password)
 
         except(
             UserAlreadyExistsException,

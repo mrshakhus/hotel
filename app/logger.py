@@ -15,15 +15,6 @@ logHandler.stream = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffer
 
 
 class CustomJsonFormatter(jsonlogger.JsonFormatter):
-    # def add_fields(self, log_record, record, message_dict):
-    #     super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-    #     if not log_record.get("timestamp"):
-    #         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-    #         log_record["timestamp"] = now
-    #     if log_record.get("level"):
-    #         log_record["level"] = log_record["level"].upper()
-    #     else:
-    #         log_record["level"] = record.levelname
     
     def format(self, record):
         log_record = self._get_log_record(record)
@@ -53,32 +44,3 @@ formatter = CustomJsonFormatter(
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
 logger.setLevel(settings.LOG_LEVEL)
-
-# import logging
-# import json
-# import sys
-# from datetime import datetime, timezone
-
-# from app.config import settings
-
-# logger = logging.getLogger()
-# logHandler = logging.StreamHandler(sys.stdout)
-# logHandler.stream = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1)
-
-# class SimpleJsonFormatter(logging.Formatter):
-#     def format(self, record):
-#         log_record = {
-#             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-#             "level": record.levelname,
-#             "message": record.getMessage(),
-#             "module": record.module,
-#             "funcName": record.funcName
-#         }
-#         return json.dumps(log_record, ensure_ascii=False)
-
-# formatter = SimpleJsonFormatter()
-# logHandler.setFormatter(formatter)
-# logger.addHandler(logHandler)
-# logger.setLevel(settings.LOG_LEVEL)
-
-# logger.info("Тестирование кириллицы: Привет, мир!")

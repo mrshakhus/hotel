@@ -19,7 +19,7 @@ class FavoriteHotelsService:
             if favorite_hotel:
                 raise FavoriteHotelAlreadyExistsException
             
-            await FavoriteHotelDAO.add(user_id=user_id, hotel_id=hotel_id)
+            await FavoriteHotelDAO.add_booking(user_id=user_id, hotel_id=hotel_id)
         
         except (
             NoHotelFoundException,

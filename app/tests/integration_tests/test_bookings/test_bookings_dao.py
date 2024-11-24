@@ -12,7 +12,7 @@ from app.bookings.dao import BookingDAO
     indirect=True
 )
 async def test_add_and_get_booking(authenticated_ac: AsyncClient):
-    new_booking = await BookingDAO.add(
+    new_booking = await BookingDAO.add_booking(
         user_id = 2,
         room_id = 2,
         date_from = datetime.strptime("2023-07-05", "%Y-%m-%d"),

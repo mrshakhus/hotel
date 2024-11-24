@@ -24,14 +24,14 @@ async def test_add_booking(user_id, room_id, date_from, date_to, expected_except
 
     if expected_exception:
         with pytest.raises(expected_exception):
-            await BookingDAO.add(
+            await BookingDAO.add_booking(
                 user_id=user_id,
                 room_id=room_id,
                 date_from=date_from,
                 date_to=date_to,
             )
     else:
-        booking = await BookingDAO.add(
+        booking = await BookingDAO.add_booking(
             user_id=user_id,
             room_id=room_id,
             date_from=date_from,

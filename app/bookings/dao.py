@@ -20,13 +20,13 @@ class BookingDAO(BaseDAO):
     model = Bookings
     
     @classmethod
-    async def add(
+    async def add_booking(
         cls,
         user_id: int,
         room_id: int,
         date_from: date,
         date_to: date,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         validate_dates(date_from, date_to)
         try:
             async with async_session_maker() as session:

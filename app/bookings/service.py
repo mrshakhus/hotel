@@ -44,7 +44,7 @@ class BookingsService:
     ) -> None:
         try:
             booking_info = await BookingDAO.get_full_info_by_room_id(room_id)
-            booking = await BookingDAO.add(user["id"], room_id, date_from, date_to)
+            booking = await BookingDAO.add_booking(user["id"], room_id, date_from, date_to)
             confirmation_token = await BookingConfirmationDAO.create(
                 user["id"], booking["id"],  BookingAction.CONFIRM
             )
